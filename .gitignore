@@ -1,0 +1,11 @@
+build*/
+logs/*.log
+.server.pid
+__pycache__/
+**/__pycache__/
+*.pyc
+*.pyo
+.DS_Store
+*.egg-info/
+dist/
+.venv/

@@ -1,0 +1,907 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AUTOSAR IPC 可视化监控面板</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+  :root {
+    --bg:       #0d1117;
+    --surface:  #161b22;
+    --surface2: #21262d;
+    --border:   #30363d;
+    --accent:   #238636;
+    --accent2:  #1f6feb;
+    --warn:     #d29922;
+    --danger:   #da3633;
+    --text:     #c9d1d9;
+    --text2:    #8b949e;
+    --green:    #3fb950;
+    --blue:     #58a6ff;
+    --orange:   #f78166;
+    --purple:   #bc8cff;
+    --yellow:   #e3b341;
+    --cyan:     #76e3ea;
+    --radius:   8px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'SF Mono', 'Cascadia Code', 'Consolas', monospace;
+    font-size: 13px;
+    line-height: 1.5;
+    overflow-x: hidden;
+  }
+
+  /* ── Header ── */
+  .header {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 12px 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+  .header-title {
+    display: flex; align-items: center; gap: 10px;
+  }
+  .header-title h1 { font-size: 16px; font-weight: 600; color: var(--blue); }
+  .header-title .subtitle { color: var(--text2); font-size: 11px; }
+  .ws-status {
+    display: flex; align-items: center; gap: 6px;
+    font-size: 11px; color: var(--text2);
+  }
+  .ws-dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: var(--danger); transition: background 0.3s;
+  }
+  .ws-dot.connected { background: var(--green); box-shadow: 0 0 6px var(--green); }
+
+  /* ── Layout ── */
+  .layout {
+    display: grid;
+    grid-template-columns: 260px 1fr;
+    grid-template-rows: auto 1fr;
+    gap: 0;
+    height: calc(100vh - 49px);
+  }
+  .sidebar {
+    grid-row: 1 / 3;
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    overflow-y: auto;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+  .main-content {
+    overflow-y: auto;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  /* ── Card ── */
+  .card {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 14px;
+  }
+  .card-header {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 12px;
+  }
+  .card-title {
+    font-size: 12px; font-weight: 600;
+    text-transform: uppercase; letter-spacing: 0.05em;
+    color: var(--text2);
+  }
+
+  /* ── Process Control ── */
+  .proc-block { margin-bottom: 14px; }
+  .proc-header {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 8px;
+  }
+  .proc-name {
+    font-weight: 700; font-size: 13px;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .proc-badge {
+    font-size: 10px; padding: 2px 7px; border-radius: 20px;
+    background: var(--surface); color: var(--text2); border: 1px solid var(--border);
+  }
+  .proc-badge.running {
+    background: rgba(63,185,80,0.12); color: var(--green); border-color: var(--green);
+  }
+  .proc-badge.stopped {
+    background: rgba(218,54,51,0.12); color: var(--danger); border-color: var(--danger);
+  }
+  .proc-meta { font-size: 11px; color: var(--text2); margin-bottom: 8px; }
+  .btn-row { display: flex; gap: 6px; flex-wrap: wrap; }
+  .btn {
+    padding: 5px 12px; border-radius: 6px; border: 1px solid;
+    cursor: pointer; font-size: 12px; font-family: inherit;
+    transition: opacity 0.15s, transform 0.1s;
+    font-weight: 500;
+  }
+  .btn:active { transform: scale(0.96); }
+  .btn-green  { background: rgba(35,134,54,0.2); color: var(--green); border-color: var(--green); }
+  .btn-red    { background: rgba(218,54,51,0.2); color: var(--danger); border-color: var(--danger); }
+  .btn-blue   { background: rgba(31,111,235,0.2); color: var(--blue); border-color: var(--blue); }
+  .btn-orange { background: rgba(247,129,102,0.2); color: var(--orange); border-color: var(--orange); }
+  .btn-gray   { background: rgba(139,148,158,0.15); color: var(--text2); border-color: var(--border); }
+  .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  /* Demo 按钮 */
+  .demo-section { border-top: 1px solid var(--border); padding-top: 12px; }
+  .demo-btn-start {
+    width: 100%; padding: 10px; font-size: 14px; font-weight: 700;
+    background: linear-gradient(135deg, rgba(35,134,54,0.3), rgba(31,111,235,0.3));
+    color: var(--green); border: 1px solid var(--green);
+    border-radius: var(--radius); cursor: pointer; font-family: inherit;
+    transition: all 0.2s; letter-spacing: 0.03em;
+  }
+  .demo-btn-start:hover { background: rgba(63,185,80,0.2); }
+  .demo-btn-stop {
+    width: 100%; margin-top: 6px; padding: 8px; font-size: 13px; font-weight: 600;
+    background: rgba(218,54,51,0.15); color: var(--danger); border: 1px solid var(--danger);
+    border-radius: var(--radius); cursor: pointer; font-family: inherit;
+    transition: all 0.2s;
+  }
+  .demo-btn-stop:hover { background: rgba(218,54,51,0.25); }
+
+  /* ── Stats ── */
+  .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .stat-item { text-align: center; padding: 8px; background: var(--surface); border-radius: 6px; border: 1px solid var(--border); }
+  .stat-value { font-size: 20px; font-weight: 700; line-height: 1.2; }
+  .stat-label { font-size: 10px; color: var(--text2); margin-top: 2px; }
+  .stat-green { color: var(--green); }
+  .stat-blue  { color: var(--blue); }
+  .stat-orange{ color: var(--orange); }
+  .stat-red   { color: var(--danger); }
+
+  /* ── Subscription toggles ── */
+  .sub-list { display: flex; flex-direction: column; gap: 6px; }
+  .sub-item {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 6px 10px; background: var(--surface); border-radius: 6px;
+    border: 1px solid var(--border); cursor: pointer; transition: border-color 0.15s;
+  }
+  .sub-item:hover { border-color: var(--blue); }
+  .sub-item.active { border-color: var(--green); background: rgba(63,185,80,0.06); }
+  .sub-name { font-size: 12px; }
+  .sub-toggle {
+    width: 34px; height: 18px; border-radius: 9px;
+    background: var(--border); position: relative; transition: background 0.2s;
+  }
+  .sub-toggle::after {
+    content: ''; position: absolute; top: 2px; left: 2px;
+    width: 14px; height: 14px; border-radius: 50%;
+    background: white; transition: left 0.2s;
+  }
+  .sub-item.active .sub-toggle { background: var(--green); }
+  .sub-item.active .sub-toggle::after { left: 18px; }
+
+  /* ── Charts row ── */
+  .charts-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
+  .chart-card { background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px; }
+  .chart-title { font-size: 11px; font-weight: 600; color: var(--text2); text-transform: uppercase; margin-bottom: 4px; }
+  .chart-value { font-size: 28px; font-weight: 700; margin-bottom: 8px; }
+  .chart-unit { font-size: 12px; color: var(--text2); font-weight: 400; }
+  .chart-canvas { height: 80px; }
+
+  /* ── Signal gauges ── */
+  .gauges-row { display: grid; grid-template-columns: repeat(6, 1fr); gap: 10px; }
+  .gauge-card {
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 12px; text-align: center;
+    transition: border-color 0.3s;
+  }
+  .gauge-card.active { border-color: rgba(88,166,255,0.4); }
+  .gauge-name { font-size: 10px; color: var(--text2); text-transform: uppercase; margin-bottom: 6px; letter-spacing: 0.04em; }
+  .gauge-val { font-size: 22px; font-weight: 700; line-height: 1; }
+  .gauge-unit { font-size: 10px; color: var(--text2); margin-top: 3px; }
+  .gauge-bar-wrap { height: 4px; background: var(--border); border-radius: 2px; margin-top: 8px; overflow: hidden; }
+  .gauge-bar { height: 100%; border-radius: 2px; transition: width 0.3s; background: var(--blue); }
+
+  /* ── SOME/IP 帧面板 ── */
+  .frame-row { display: grid; grid-template-columns: 1fr 2fr; gap: 12px; }
+  .frame-info { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .fi-item { background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 8px; }
+  .fi-label { font-size: 10px; color: var(--text2); }
+  .fi-val { font-size: 14px; font-weight: 600; margin-top: 2px; font-family: 'SF Mono', monospace; }
+
+  /* ── 日志 ── */
+  .log-panel {
+    background: #0d1117; border: 1px solid var(--border);
+    border-radius: 6px; height: 200px; overflow-y: auto;
+    padding: 8px 10px; font-size: 11px; font-family: 'SF Mono', monospace;
+  }
+  .log-line { padding: 1px 0; border-bottom: 1px solid rgba(48,54,61,0.5); }
+  .log-line:last-child { border-bottom: none; }
+  .log-ts { color: var(--text2); margin-right: 6px; }
+  .log-proc-ap { color: var(--blue); font-weight: 600; margin-right: 4px; }
+  .log-proc-cp { color: var(--orange); font-weight: 600; margin-right: 4px; }
+  .log-tabs { display: flex; gap: 2px; margin-bottom: 8px; }
+  .log-tab {
+    padding: 4px 12px; font-size: 11px; border: 1px solid var(--border);
+    border-radius: 4px; cursor: pointer; background: var(--surface);
+    color: var(--text2); transition: all 0.15s;
+  }
+  .log-tab.active { background: var(--surface2); color: var(--text); border-color: var(--blue); }
+
+  /* ── 通信矩阵 ── */
+  .comm-matrix {
+    display: flex; align-items: center; justify-content: center;
+    gap: 20px; padding: 16px;
+  }
+  .comm-node {
+    background: var(--surface); border: 2px solid var(--border);
+    border-radius: 10px; padding: 16px 20px; text-align: center; min-width: 140px;
+  }
+  .comm-node.active { border-color: var(--green); box-shadow: 0 0 12px rgba(63,185,80,0.2); }
+  .comm-node.inactive { border-color: var(--danger); }
+  .comm-node-name { font-size: 14px; font-weight: 700; }
+  .comm-node-role { font-size: 10px; color: var(--text2); margin-top: 2px; }
+  .comm-node-pid { font-size: 11px; color: var(--text2); margin-top: 4px; }
+  .comm-arrow { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+  .comm-arrow-line {
+    display: flex; align-items: center; gap: 8px;
+    font-size: 11px; color: var(--text2);
+  }
+  .arrow-anim {
+    display: flex; gap: 4px; align-items: center;
+  }
+  .arrow-dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: var(--green); opacity: 0;
+    animation: flowDot 1.2s linear infinite;
+  }
+  .arrow-dot:nth-child(2) { animation-delay: 0.4s; }
+  .arrow-dot:nth-child(3) { animation-delay: 0.8s; }
+  @keyframes flowDot {
+    0%,100% { opacity:0; transform: scale(0.6); }
+    50%      { opacity:1; transform: scale(1); }
+  }
+  .arrow-label { font-size: 10px; color: var(--cyan); font-weight: 600; }
+
+  /* ── E2E 指示灯 ── */
+  .e2e-indicator {
+    display: inline-flex; align-items: center; gap: 5px;
+    font-size: 11px; padding: 3px 8px; border-radius: 12px;
+  }
+  .e2e-ok    { background: rgba(63,185,80,0.12); color: var(--green); border: 1px solid var(--green); }
+  .e2e-fail  { background: rgba(218,54,51,0.12);  color: var(--danger); border: 1px solid var(--danger); }
+  .e2e-dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+
+  /* Responsive small screens */
+  @media (max-width: 1200px) {
+    .gauges-row { grid-template-columns: repeat(3,1fr); }
+    .charts-row { grid-template-columns: 1fr 1fr; }
+  }
+  @media (max-width: 900px) {
+    .layout { grid-template-columns: 1fr; }
+    .sidebar { border-right: none; border-bottom: 1px solid var(--border); }
+  }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 4px; height: 4px; }
+  ::-webkit-scrollbar-track { background: var(--surface); }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+  .badge-error {
+    background: rgba(218,54,51,0.15); color: var(--danger);
+    padding: 2px 6px; border-radius: 4px; font-size: 10px; font-weight: 700;
+  }
+  .badge-ok {
+    background: rgba(63,185,80,0.15); color: var(--green);
+    padding: 2px 6px; border-radius: 4px; font-size: 10px; font-weight: 700;
+  }
+</style>
+</head>
+<body>
+
+<!-- ── Header ── -->
+<header class="header">
+  <div class="header-title">
+    <span style="font-size:20px">⚙️</span>
+    <div>
+      <h1>AUTOSAR IPC 可视化监控面板</h1>
+      <div class="subtitle">MyAutoSarAp (SOC/AP) ↔ SOME/IP UDP ↔ MyAutoSarCP (MCU/CP)</div>
+    </div>
+  </div>
+  <div class="ws-status">
+    <div class="ws-dot" id="wsDot"></div>
+    <span id="wsStatusText">未连接</span>
+    <span style="margin-left:12px;color:var(--text2)" id="headerClock">--:--:--</span>
+  </div>
+</header>
+
+<!-- ── Layout ── -->
+<div class="layout">
+
+  <!-- ── Sidebar ── -->
+  <aside class="sidebar">
+
+    <!-- Demo 控制 -->
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">🚀 Demo 控制</span>
+      </div>
+      <div class="demo-section">
+        <button class="demo-btn-start" onclick="sendCmd({action:'start_demo'})">▶ 启动完整 Demo</button>
+        <button class="demo-btn-stop"  onclick="sendCmd({action:'stop_demo'})">⬛ 停止 Demo</button>
+        <button class="btn btn-gray" style="width:100%;margin-top:6px;font-size:11px" onclick="sendCmd({action:'clear_stats'})">↺ 清空统计</button>
+      </div>
+    </div>
+
+    <!-- AP 进程 -->
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">🔷 SOC — MyAutoSarAp</span>
+        <span class="proc-badge stopped" id="apBadge">stopped</span>
+      </div>
+      <div class="proc-meta" id="apMeta">PID: — | CPU: — | MEM: —</div>
+      <div class="btn-row">
+        <button class="btn btn-green" onclick="sendCmd({action:'start',process:'ap'})">Start</button>
+        <button class="btn btn-red"   onclick="sendCmd({action:'stop',process:'ap'})">Stop</button>
+        <button class="btn btn-blue"  onclick="sendCmd({action:'restart',process:'ap'})">Restart</button>
+      </div>
+    </div>
+
+    <!-- CP 进程 -->
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">🔶 MCU — MyAutoSarCP</span>
+        <span class="proc-badge stopped" id="cpBadge">stopped</span>
+      </div>
+      <div class="proc-meta" id="cpMeta">PID: — | CPU: — | MEM: —</div>
+      <div class="btn-row">
+        <button class="btn btn-green" onclick="sendCmd({action:'start',process:'cp'})">Start</button>
+        <button class="btn btn-red"   onclick="sendCmd({action:'stop',process:'cp'})">Stop</button>
+        <button class="btn btn-blue"  onclick="sendCmd({action:'restart',process:'cp'})">Restart</button>
+      </div>
+    </div>
+
+    <!-- 订阅控制 -->
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">📡 信号订阅</span>
+      </div>
+      <div class="sub-list" id="subList">
+        <!-- 由 JS 生成 -->
+      </div>
+    </div>
+
+    <!-- 统计 -->
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">📊 通信统计</span>
+      </div>
+      <div class="stats-grid">
+        <div class="stat-item">
+          <div class="stat-value stat-green" id="statFrames">0</div>
+          <div class="stat-label">总帧数</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-value stat-blue" id="statFps">0</div>
+          <div class="stat-label">帧率/s</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-value stat-red" id="statE2E">0</div>
+          <div class="stat-label">E2E 错误</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-value stat-orange" id="statGaps">0</div>
+          <div class="stat-label">序列跳变</div>
+        </div>
+      </div>
+    </div>
+
+  </aside>
+
+  <!-- ── Main Content ── -->
+  <main class="main-content">
+
+    <!-- 通信矩阵 -->
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">🔗 通信架构</span>
+        <span id="e2eGlobal" class="e2e-indicator e2e-ok"><span class="e2e-dot"></span>E2E OK</span>
+      </div>
+      <div class="comm-matrix">
+        <div class="comm-node" id="cpNode">
+          <div class="comm-node-name" style="color:var(--orange)">MyAutoSarCP</div>
+          <div class="comm-node-role">MCU · AUTOSAR CP R25-11</div>
+          <div class="comm-node-role">SOME/IP Provider</div>
+          <div class="comm-node-pid" id="cpNodePid">PID: —</div>
+        </div>
+        <div class="comm-arrow">
+          <div class="comm-arrow-line">
+            <div class="arrow-anim" id="arrowAnim">
+              <div class="arrow-dot"></div>
+              <div class="arrow-dot"></div>
+              <div class="arrow-dot"></div>
+            </div>
+          </div>
+          <div class="arrow-label">SOME/IP 0x1001</div>
+          <div style="font-size:10px;color:var(--text2)">UDP 127.0.0.1:30501</div>
+          <div style="font-size:10px;color:var(--text2)">Event 0x8001 · 10ms</div>
+          <div style="font-size:10px;color:var(--cyan);margin-top:4px" id="lastFrameAge">最后帧: —</div>
+        </div>
+        <div class="comm-node" id="apNode">
+          <div class="comm-node-name" style="color:var(--blue)">MyAutoSarAp</div>
+          <div class="comm-node-role">SOC · AUTOSAR AP R25-11</div>
+          <div class="comm-node-role">SOME/IP Consumer</div>
+          <div class="comm-node-pid" id="apNodePid">PID: —</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Gauges -->
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">📈 实时信号值</span>
+        <span style="font-size:11px;color:var(--text2)" id="lastUpdate">等待数据...</span>
+      </div>
+      <div class="gauges-row">
+        <div class="gauge-card" id="g_speed">
+          <div class="gauge-name">车速</div>
+          <div class="gauge-val" style="color:var(--blue)" id="gv_speed">—</div>
+          <div class="gauge-unit">km/h</div>
+          <div class="gauge-bar-wrap"><div class="gauge-bar" id="gb_speed" style="width:0%;background:var(--blue)"></div></div>
+        </div>
+        <div class="gauge-card" id="g_rpm">
+          <div class="gauge-name">发动机转速</div>
+          <div class="gauge-val" style="color:var(--green)" id="gv_rpm">—</div>
+          <div class="gauge-unit">RPM</div>
+          <div class="gauge-bar-wrap"><div class="gauge-bar" id="gb_rpm" style="width:0%;background:var(--green)"></div></div>
+        </div>
+        <div class="gauge-card" id="g_fuel">
+          <div class="gauge-name">燃油液位</div>
+          <div class="gauge-val" style="color:var(--yellow)" id="gv_fuel">—</div>
+          <div class="gauge-unit">%</div>
+          <div class="gauge-bar-wrap"><div class="gauge-bar" id="gb_fuel" style="width:0%;background:var(--yellow)"></div></div>
+        </div>
+        <div class="gauge-card" id="g_steer">
+          <div class="gauge-name">方向盘转角</div>
+          <div class="gauge-val" style="color:var(--purple)" id="gv_steer">—</div>
+          <div class="gauge-unit">deg</div>
+          <div class="gauge-bar-wrap"><div class="gauge-bar" id="gb_steer" style="width:0%;background:var(--purple)"></div></div>
+        </div>
+        <div class="gauge-card" id="g_brake">
+          <div class="gauge-name">制动踏板</div>
+          <div class="gauge-val" style="color:var(--orange)" id="gv_brake">—</div>
+          <div class="gauge-unit">0=释放 1=踩下</div>
+          <div class="gauge-bar-wrap"><div class="gauge-bar" id="gb_brake" style="width:0%;background:var(--orange)"></div></div>
+        </div>
+        <div class="gauge-card" id="g_door">
+          <div class="gauge-name">车门状态</div>
+          <div class="gauge-val" style="color:var(--cyan)" id="gv_door">—</div>
+          <div class="gauge-unit">bitmask</div>
+          <div class="gauge-bar-wrap"><div class="gauge-bar" id="gb_door" style="width:0%;background:var(--cyan)"></div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 时序图 -->
+    <div class="charts-row">
+      <div class="chart-card">
+        <div class="chart-title">车速 (km/h)</div>
+        <div class="chart-value" style="color:var(--blue)"><span id="cv_speed">—</span><span class="chart-unit"> km/h</span></div>
+        <canvas id="ch_speed" class="chart-canvas"></canvas>
+      </div>
+      <div class="chart-card">
+        <div class="chart-title">发动机转速 (RPM)</div>
+        <div class="chart-value" style="color:var(--green)"><span id="cv_rpm">—</span><span class="chart-unit"> RPM</span></div>
+        <canvas id="ch_rpm" class="chart-canvas"></canvas>
+      </div>
+      <div class="chart-card">
+        <div class="chart-title">燃油液位 (%)</div>
+        <div class="chart-value" style="color:var(--yellow)"><span id="cv_fuel">—</span><span class="chart-unit"> %</span></div>
+        <canvas id="ch_fuel" class="chart-canvas"></canvas>
+      </div>
+    </div>
+
+    <!-- SOME/IP 帧详情 + E2E -->
+    <div class="frame-row">
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">🛡️ 最新 SOME/IP 帧</span>
+          <span id="e2eStatus" class="e2e-indicator e2e-ok"><span class="e2e-dot"></span>E2E OK</span>
+        </div>
+        <div class="frame-info" id="frameInfo">
+          <div class="fi-item"><div class="fi-label">Service ID</div><div class="fi-val" id="fi_svc">—</div></div>
+          <div class="fi-item"><div class="fi-label">Method/Event ID</div><div class="fi-val" id="fi_evt">—</div></div>
+          <div class="fi-item"><div class="fi-label">Session ID</div><div class="fi-val" id="fi_sid">—</div></div>
+          <div class="fi-item"><div class="fi-label">Length</div><div class="fi-val" id="fi_len">—</div></div>
+          <div class="fi-item"><div class="fi-label">E2E CRC</div><div class="fi-val" id="fi_crc">—</div></div>
+          <div class="fi-item"><div class="fi-label">E2E Counter</div><div class="fi-val" id="fi_cnt">—</div></div>
+          <div class="fi-item"><div class="fi-label">Msg Type</div><div class="fi-val" id="fi_mtype">—</div></div>
+          <div class="fi-item"><div class="fi-label">时间戳</div><div class="fi-val" id="fi_ts">—</div></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">📋 进程日志</span>
+          <div class="log-tabs">
+            <div class="log-tab active" id="logTabAp" onclick="switchLog('ap')">AP (SOC)</div>
+            <div class="log-tab" id="logTabCp" onclick="switchLog('cp')">CP (MCU)</div>
+          </div>
+        </div>
+        <div class="log-panel" id="logPanel"></div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════
+// CONFIG
+// ═══════════════════════════════════════════════════════
+const WS_URL = 'ws://127.0.0.1:8765';
+const MAX_CHART_POINTS = 60;
+
+// ═══════════════════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════════════════
+let ws = null;
+let wsConnected = false;
+let reconnectTimer = null;
+let currentLogTab = 'ap';
+const logLines = { ap: [], cp: [] };
+let subscriptions = {};
+
+// ═══════════════════════════════════════════════════════
+// CHART INIT
+// ═══════════════════════════════════════════════════════
+function makeChart(id, color, label) {
+  const ctx = document.getElementById(id).getContext('2d');
+  return new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: [],
+      datasets: [{
+        label,
+        data: [],
+        borderColor: color,
+        backgroundColor: color + '22',
+        borderWidth: 1.5,
+        pointRadius: 0,
+        fill: true,
+        tension: 0.3,
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      animation: false,
+      interaction: { mode: 'none' },
+      plugins: { legend: { display: false }, tooltip: { enabled: false } },
+      scales: {
+        x: { display: false },
+        y: {
+          display: true,
+          grid: { color: 'rgba(48,54,61,0.6)', drawBorder: false },
+          ticks: { color: '#8b949e', font: { size: 9 }, maxTicksLimit: 4 },
+          border: { display: false },
+        }
+      }
+    }
+  });
+}
+
+const charts = {
+  speed: makeChart('ch_speed', '#58a6ff', '车速'),
+  rpm:   makeChart('ch_rpm',   '#3fb950', '转速'),
+  fuel:  makeChart('ch_fuel',  '#e3b341', '燃油'),
+};
+
+function pushChart(chart, val) {
+  const d = chart.data;
+  d.labels.push('');
+  d.datasets[0].data.push(val);
+  if (d.labels.length > MAX_CHART_POINTS) {
+    d.labels.shift();
+    d.datasets[0].data.shift();
+  }
+  chart.update('none');
+}
+
+// ═══════════════════════════════════════════════════════
+// SUBSCRIPTION UI
+// ═══════════════════════════════════════════════════════
+const SUB_DEFS = [
+  { key: 'vehicle_speed', label: '车速 (speed)' },
+  { key: 'engine_rpm',    label: '转速 (rpm)' },
+  { key: 'brake_pedal',   label: '制动 (brake)' },
+  { key: 'steering_angle',label: '转角 (steering)' },
+  { key: 'door_status',   label: '车门 (door)' },
+  { key: 'fuel_level',    label: '燃油 (fuel)' },
+];
+
+function renderSubscriptions() {
+  const el = document.getElementById('subList');
+  el.innerHTML = '';
+  SUB_DEFS.forEach(({ key, label }) => {
+    const on = subscriptions[key] !== false;
+    const item = document.createElement('div');
+    item.className = 'sub-item' + (on ? ' active' : '');
+    item.innerHTML = `<span class="sub-name">${label}</span><div class="sub-toggle"></div>`;
+    item.onclick = () => sendCmd({ action: 'set_subscription', key, value: !on });
+    el.appendChild(item);
+  });
+}
+
+// ═══════════════════════════════════════════════════════
+// PROCESS STATUS
+// ═══════════════════════════════════════════════════════
+function updateProcessUI(procs) {
+  ['ap', 'cp'].forEach(k => {
+    const p = procs[k];
+    if (!p) return;
+    const badge = document.getElementById(k + 'Badge');
+    const meta  = document.getElementById(k + 'Meta');
+    const node  = document.getElementById(k + 'Node');
+    const nodePid = document.getElementById(k + 'NodePid');
+
+    badge.className = 'proc-badge ' + (p.running ? 'running' : 'stopped');
+    badge.textContent = p.running ? 'running' : 'stopped';
+    meta.textContent = `PID: ${p.pid || '—'} | CPU: ${p.cpu || 0}% | MEM: ${p.mem_mb || 0} MB`;
+
+    if (nodePid) nodePid.textContent = `PID: ${p.pid || '—'}`;
+    if (node) {
+      node.className = 'comm-node ' + (p.running ? 'active' : 'inactive');
+    }
+  });
+}
+
+// ═══════════════════════════════════════════════════════
+// FRAME UI
+// ═══════════════════════════════════════════════════════
+function updateFrame(event) {
+  const { header, signal, ts_str, stats } = event;
+
+  // Gauges
+  setGauge('speed', signal.vehicle_speed_kmh, 0, 200);
+  setGauge('rpm',   signal.engine_rpm,         0, 8000);
+  setGauge('fuel',  signal.fuel_level_pct,      0, 100);
+  setGauge('steer', Math.abs(signal.steering_angle_deg), 0, 540);
+  setGauge('brake', signal.brake_pedal,         0, 1);
+  setGauge('door',  signal.door_status,         0, 15);
+
+  // Charts
+  pushChart(charts.speed, signal.vehicle_speed_kmh);
+  pushChart(charts.rpm,   signal.engine_rpm);
+  pushChart(charts.fuel,  signal.fuel_level_pct);
+
+  document.getElementById('cv_speed').textContent = signal.vehicle_speed_kmh?.toFixed(1) ?? '—';
+  document.getElementById('cv_rpm').textContent   = signal.engine_rpm?.toFixed(0)         ?? '—';
+  document.getElementById('cv_fuel').textContent  = signal.fuel_level_pct?.toFixed(1)     ?? '—';
+
+  // Frame info
+  document.getElementById('fi_svc').textContent   = '0x' + (header.service_id).toString(16).toUpperCase().padStart(4,'0');
+  document.getElementById('fi_evt').textContent   = '0x' + (header.method_id).toString(16).toUpperCase().padStart(4,'0');
+  document.getElementById('fi_sid').textContent   = header.session_id;
+  document.getElementById('fi_len').textContent   = header.length + ' B';
+  document.getElementById('fi_crc').textContent   = '0x' + signal.e2e_crc.toString(16).toUpperCase().padStart(2,'0');
+  document.getElementById('fi_cnt').textContent   = signal.e2e_counter;
+  document.getElementById('fi_mtype').textContent = msgTypeName(header.msg_type);
+  document.getElementById('fi_ts').textContent    = ts_str;
+
+  // E2E
+  const ok = signal.e2e_ok;
+  const e2eSt = document.getElementById('e2eStatus');
+  const e2eGl = document.getElementById('e2eGlobal');
+  e2eSt.className = 'e2e-indicator ' + (ok ? 'e2e-ok' : 'e2e-fail');
+  e2eSt.innerHTML = `<span class="e2e-dot"></span>${ok ? 'E2E OK' : 'E2E FAIL'}`;
+  e2eGl.className = 'e2e-indicator ' + (ok ? 'e2e-ok' : 'e2e-fail');
+  e2eGl.innerHTML = `<span class="e2e-dot"></span>${ok ? 'E2E OK' : 'E2E FAIL'}`;
+
+  // last update
+  document.getElementById('lastUpdate').textContent = '最后更新: ' + ts_str;
+
+  // Stats
+  if (stats) updateStats(stats);
+}
+
+function setGauge(id, val, min, max) {
+  if (val === undefined || val === null) return;
+  const vEl = document.getElementById('gv_' + id);
+  const bEl = document.getElementById('gb_' + id);
+  const gEl = document.getElementById('g_'  + id);
+  if (!vEl) return;
+  vEl.textContent = typeof val === 'number' ? val.toFixed(id === 'rpm' ? 0 : id === 'brake' || id === 'door' ? 0 : 1) : val;
+  const pct = Math.min(100, Math.max(0, ((val - min) / (max - min)) * 100));
+  if (bEl) bEl.style.width = pct + '%';
+  if (gEl) gEl.classList.add('active');
+}
+
+function msgTypeName(t) {
+  const m = { 0:'REQUEST', 1:'REQUEST_NR', 2:'NOTIFICATION', 0x80:'RESPONSE', 0x81:'ERROR' };
+  return m[t] || '0x' + t.toString(16).toUpperCase();
+}
+
+// ═══════════════════════════════════════════════════════
+// STATS UI
+// ═══════════════════════════════════════════════════════
+function updateStats(s) {
+  document.getElementById('statFrames').textContent = s.total_frames ?? 0;
+  document.getElementById('statFps').textContent    = s.fps ?? 0;
+  document.getElementById('statE2E').textContent    = s.e2e_errors ?? 0;
+  document.getElementById('statGaps').textContent   = s.session_gaps ?? 0;
+}
+
+// ═══════════════════════════════════════════════════════
+// LOG
+// ═══════════════════════════════════════════════════════
+function switchLog(tab) {
+  currentLogTab = tab;
+  document.getElementById('logTabAp').className = 'log-tab' + (tab === 'ap' ? ' active' : '');
+  document.getElementById('logTabCp').className = 'log-tab' + (tab === 'cp' ? ' active' : '');
+  renderLog();
+}
+
+function appendLog(proc, line, ts) {
+  logLines[proc].push({ line, ts });
+  if (logLines[proc].length > 200) logLines[proc].shift();
+  if (currentLogTab === proc) renderLog();
+}
+
+function renderLog() {
+  const panel = document.getElementById('logPanel');
+  const lines = logLines[currentLogTab];
+  const wasAtBottom = panel.scrollHeight - panel.clientHeight - panel.scrollTop < 30;
+  panel.innerHTML = lines.map(({ line, ts }) =>
+    `<div class="log-line"><span class="log-ts">${ts}</span>` +
+    `<span class="log-proc-${currentLogTab}">[${currentLogTab.toUpperCase()}]</span>` +
+    `<span>${escHtml(line)}</span></div>`
+  ).join('');
+  if (wasAtBottom) panel.scrollTop = panel.scrollHeight;
+}
+
+function escHtml(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+// ═══════════════════════════════════════════════════════
+// LAST FRAME AGE
+// ═══════════════════════════════════════════════════════
+let lastFrameTs = null;
+setInterval(() => {
+  const el = document.getElementById('lastFrameAge');
+  if (!lastFrameTs || !wsConnected) { el.textContent = '最后帧: —'; return; }
+  const ago = ((Date.now() / 1000) - lastFrameTs);
+  el.textContent = `最后帧: ${ago.toFixed(1)}s 前`;
+  el.style.color = ago > 2 ? 'var(--danger)' : 'var(--cyan)';
+}, 500);
+
+// ═══════════════════════════════════════════════════════
+// CLOCK
+// ═══════════════════════════════════════════════════════
+setInterval(() => {
+  document.getElementById('headerClock').textContent =
+    new Date().toLocaleTimeString('zh-CN', { hour12: false });
+}, 1000);
+
+// ═══════════════════════════════════════════════════════
+// WEBSOCKET
+// ═══════════════════════════════════════════════════════
+function connect() {
+  ws = new WebSocket(WS_URL);
+
+  ws.onopen = () => {
+    wsConnected = true;
+    document.getElementById('wsDot').className = 'ws-dot connected';
+    document.getElementById('wsStatusText').textContent = '已连接 ws://127.0.0.1:8765';
+    if (reconnectTimer) { clearTimeout(reconnectTimer); reconnectTimer = null; }
+  };
+
+  ws.onclose = () => {
+    wsConnected = false;
+    document.getElementById('wsDot').className = 'ws-dot';
+    document.getElementById('wsStatusText').textContent = '未连接 — 重连中...';
+    reconnectTimer = setTimeout(connect, 2000);
+  };
+
+  ws.onerror = () => { ws.close(); };
+
+  ws.onmessage = (evt) => {
+    let msg;
+    try { msg = JSON.parse(evt.data); } catch { return; }
+    handleMessage(msg);
+  };
+}
+
+function handleMessage(msg) {
+  switch (msg.type) {
+    case 'welcome':
+      subscriptions = msg.subscriptions || {};
+      renderSubscriptions();
+      updateProcessUI(msg.processes || {});
+      if (msg.stats) updateStats(msg.stats);
+      // 恢复历史数据到图表
+      if (msg.history?.length) {
+        msg.history.forEach(e => {
+          if (e.signal) {
+            charts.speed.data.labels.push('');
+            charts.speed.data.datasets[0].data.push(e.signal.vehicle_speed_kmh);
+            charts.rpm.data.labels.push('');
+            charts.rpm.data.datasets[0].data.push(e.signal.engine_rpm);
+            charts.fuel.data.labels.push('');
+            charts.fuel.data.datasets[0].data.push(e.signal.fuel_level_pct);
+          }
+        });
+        ['speed','rpm','fuel'].forEach(k => {
+          const d = charts[k].data;
+          while (d.labels.length > MAX_CHART_POINTS) {
+            d.labels.shift(); d.datasets[0].data.shift();
+          }
+          charts[k].update('none');
+        });
+        // 显示最后一帧
+        const last = msg.history[msg.history.length - 1];
+        if (last) { updateFrame(last); lastFrameTs = last.ts; }
+      }
+      // 恢复日志
+      if (msg.processes?.ap?.logs) msg.processes.ap.logs.forEach(l => appendLog('ap', l, ''));
+      if (msg.processes?.cp?.logs) msg.processes.cp.logs.forEach(l => appendLog('cp', l, ''));
+      break;
+
+    case 'frame':
+      lastFrameTs = msg.ts;
+      updateFrame(msg);
+      break;
+
+    case 'log':
+      appendLog(msg.process, msg.line, msg.ts_str || '');
+      break;
+
+    case 'heartbeat':
+      updateProcessUI(msg.processes || {});
+      if (msg.stats) updateStats(msg.stats);
+      break;
+
+    case 'process_status':
+      updateProcessUI(msg.processes || {});
+      break;
+
+    case 'ack':
+      if (msg.subscriptions) {
+        subscriptions = msg.subscriptions;
+        renderSubscriptions();
+      }
+      if (msg.processes) updateProcessUI(msg.processes);
+      break;
+  }
+}
+
+function sendCmd(cmd) {
+  if (ws && ws.readyState === WebSocket.OPEN) {
+    ws.send(JSON.stringify(cmd));
+  } else {
+    console.warn('WS not connected');
+  }
+}
+
+// ═══════════════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════════════
+// 初始化订阅 UI 默认值
+SUB_DEFS.forEach(({ key }) => { subscriptions[key] = true; });
+renderSubscriptions();
+connect();
+</script>
+</body>
+</html>

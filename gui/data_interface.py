@@ -87,9 +87,9 @@ class CommStats:
 # ═══════════════════════════════════════════════════════════════════════
 
 _SOMEIP_HDR_SIZE      = 16
-_VEHICLE_SIGNAL_PORT  = 30501
+_VEHICLE_SIGNAL_PORT  = 30502   # 监控镜像端口（CP 额外复制帧，不影响 AP 的 30501）
 _SVC_ID_VEHICLE       = 0x1001
-_PAYLOAD_FMT          = ">ffBfBfBB"   # big-endian, 20 bytes
+_PAYLOAD_FMT          = "<ffBfBfBB"   # Little-Endian（宿主机字节序，float 未做网络序转换）
 _PAYLOAD_SIZE         = struct.calcsize(_PAYLOAD_FMT)  # 20
 
 

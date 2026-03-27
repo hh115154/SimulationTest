@@ -97,11 +97,11 @@
     background: var(--surface2);
     border: 1px solid var(--border);
     border-radius: var(--radius);
-    padding: 8px 10px;
+    padding: 6px 8px;
   }
   .card-header {
     display: flex; align-items: center; justify-content: space-between;
-    margin-bottom: 6px;
+    margin-bottom: 4px;
   }
   .card-title {
     font-size: 10px; font-weight: 600;
@@ -232,34 +232,59 @@
   .sub-item.active .sub-toggle { background: var(--green); }
   .sub-item.active .sub-toggle::after { left: 15px; }
 
-  /* ── Charts row ── */
-  .charts-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; }
-  .chart-card { background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius); padding: 8px 10px; }
-  .chart-title { font-size: 10px; font-weight: 600; color: var(--text2); text-transform: uppercase; margin-bottom: 2px; }
-  .chart-value { font-size: 20px; font-weight: 700; margin-bottom: 4px; }
-  .chart-unit { font-size: 10px; color: var(--text2); font-weight: 400; }
-  .chart-canvas { height: 56px; }
+  /* ── Charts + SOME/IP 并排行 ── */
+  .charts-someip-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr auto;
+    gap: 6px;
+    flex-shrink: 0;
+    height: 76px;          /* 固定整行高度，防止撑大 */
+    min-height: 76px;
+    max-height: 76px;
+  }
+  /* ── Chart card ── */
+  .chart-card {
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 5px 8px;
+    overflow: hidden;          /* 防止 Chart.js 撑大 */
+    display: flex; flex-direction: column;
+    height: 100%;
+  }
+  .chart-header { display: flex; align-items: baseline; justify-content: space-between; flex-shrink: 0; margin-bottom: 2px; }
+  .chart-title { font-size: 10px; font-weight: 600; color: var(--text2); text-transform: uppercase; }
+  .chart-value { font-size: 13px; font-weight: 700; line-height: 1; }
+  .chart-unit { font-size: 9px; color: var(--text2); font-weight: 400; margin-left: 2px; }
+  .chart-canvas { flex: 1; min-height: 0; width: 100% !important; }
+
+  /* SOME/IP 帧卡（嵌在并排行里）*/
+  .someip-card {
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 5px 8px;
+    display: flex; flex-direction: column;
+    height: 100%; width: 240px; flex-shrink: 0;
+    overflow: hidden;
+  }
 
   /* ── Signal gauges ── */
-  .gauges-row { display: grid; grid-template-columns: repeat(6, 1fr); gap: 6px; }
+  .gauges-row { display: grid; grid-template-columns: repeat(6, 1fr); gap: 5px; }
   .gauge-card {
     background: var(--surface2); border: 1px solid var(--border);
-    border-radius: var(--radius); padding: 7px 6px; text-align: center;
+    border-radius: var(--radius); padding: 5px 5px; text-align: center;
     transition: border-color 0.3s;
   }
   .gauge-card.active { border-color: rgba(88,166,255,0.4); }
-  .gauge-name { font-size: 9px; color: var(--text2); text-transform: uppercase; margin-bottom: 3px; letter-spacing: 0.04em; }
-  .gauge-val { font-size: 17px; font-weight: 700; line-height: 1; }
-  .gauge-unit { font-size: 9px; color: var(--text2); margin-top: 2px; }
-  .gauge-bar-wrap { height: 3px; background: var(--border); border-radius: 2px; margin-top: 5px; overflow: hidden; }
+  .gauge-name { font-size: 9px; color: var(--text2); text-transform: uppercase; margin-bottom: 2px; letter-spacing: 0.04em; }
+  .gauge-val { font-size: 15px; font-weight: 700; line-height: 1; }
+  .gauge-unit { font-size: 9px; color: var(--text2); margin-top: 1px; }
+  .gauge-bar-wrap { height: 3px; background: var(--border); border-radius: 2px; margin-top: 4px; overflow: hidden; }
   .gauge-bar { height: 100%; border-radius: 2px; transition: width 0.3s; background: var(--blue); }
 
   /* ── SOME/IP 帧面板 ── */
   .frame-row { display: grid; grid-template-columns: 1fr 2fr; gap: 8px; }
-  .frame-info { display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px; }
-  .fi-item { background: var(--surface); border: 1px solid var(--border); border-radius: 5px; padding: 5px 6px; }
-  .fi-label { font-size: 9px; color: var(--text2); }
-  .fi-val { font-size: 12px; font-weight: 600; margin-top: 1px; font-family: 'SF Mono', monospace; }
+  .frame-info { display: grid; grid-template-columns: repeat(2, 1fr); gap: 3px; flex: 1; overflow: hidden; }
+  .fi-item { background: var(--surface); border: 1px solid var(--border); border-radius: 4px; padding: 2px 4px; }
+  .fi-label { font-size: 8px; color: var(--text2); line-height: 1.2; }
+  .fi-val { font-size: 10px; font-weight: 600; line-height: 1.2; font-family: 'SF Mono', monospace; }
 
   /* ── 日志（原始）── */
   .log-panel {
@@ -349,17 +374,17 @@
   /* ── 通信矩阵 ── */
   .comm-matrix {
     display: flex; align-items: center; justify-content: center;
-    gap: 16px; padding: 8px 12px;
+    gap: 12px; padding: 4px 8px;
   }
   .comm-node {
     background: var(--surface); border: 2px solid var(--border);
-    border-radius: 8px; padding: 8px 14px; text-align: center; min-width: 120px;
+    border-radius: 8px; padding: 5px 10px; text-align: center; min-width: 100px;
   }
   .comm-node.active { border-color: var(--green); box-shadow: 0 0 8px rgba(63,185,80,0.2); }
   .comm-node.inactive { border-color: var(--danger); }
-  .comm-node-name { font-size: 12px; font-weight: 700; }
+  .comm-node-name { font-size: 11px; font-weight: 700; }
   .comm-node-role { font-size: 9px; color: var(--text2); margin-top: 1px; }
-  .comm-node-pid { font-size: 10px; color: var(--text2); margin-top: 3px; }
+  .comm-node-pid { font-size: 9px; color: var(--text2); margin-top: 2px; }
   .comm-arrow { display: flex; flex-direction: column; align-items: center; gap: 3px; }
   .comm-arrow-line {
     display: flex; align-items: center; gap: 6px;
@@ -672,44 +697,49 @@
       </div>
     </div>
 
-    <!-- 时序图 -->
-    <div class="charts-row" style="flex-shrink:0">
+    <!-- 时序图 + SOME/IP 帧（固定高度并排行） -->
+    <div class="charts-someip-row">
       <div class="chart-card">
-        <div class="chart-title">车速 (km/h)</div>
-        <div class="chart-value" style="color:var(--blue)"><span id="cv_speed">—</span><span class="chart-unit"> km/h</span></div>
+        <div class="chart-header">
+          <span class="chart-title">车速</span>
+          <span class="chart-value" style="color:var(--blue)"><span id="cv_speed">—</span><span class="chart-unit">km/h</span></span>
+        </div>
         <canvas id="ch_speed" class="chart-canvas"></canvas>
       </div>
       <div class="chart-card">
-        <div class="chart-title">发动机转速 (RPM)</div>
-        <div class="chart-value" style="color:var(--green)"><span id="cv_rpm">—</span><span class="chart-unit"> RPM</span></div>
+        <div class="chart-header">
+          <span class="chart-title">发动机转速</span>
+          <span class="chart-value" style="color:var(--green)"><span id="cv_rpm">—</span><span class="chart-unit">RPM</span></span>
+        </div>
         <canvas id="ch_rpm" class="chart-canvas"></canvas>
       </div>
       <div class="chart-card">
-        <div class="chart-title">燃油液位 (%)</div>
-        <div class="chart-value" style="color:var(--yellow)"><span id="cv_fuel">—</span><span class="chart-unit"> %</span></div>
+        <div class="chart-header">
+          <span class="chart-title">燃油液位</span>
+          <span class="chart-value" style="color:var(--yellow)"><span id="cv_fuel">—</span><span class="chart-unit">%</span></span>
+        </div>
         <canvas id="ch_fuel" class="chart-canvas"></canvas>
       </div>
+      <!-- SOME/IP 帧详情（并排在曲线右侧） -->
+      <div class="someip-card">
+        <div style="display:flex;align-items:center;justify-content:space-between;flex-shrink:0;margin-bottom:3px">
+          <span style="font-size:9px;font-weight:600;text-transform:uppercase;color:var(--text2);letter-spacing:0.05em">🛡️ SOME/IP</span>
+          <span id="e2eStatus" class="e2e-indicator e2e-ok" style="font-size:9px;padding:1px 5px"><span class="e2e-dot"></span>E2E OK</span>
+        </div>
+        <div class="frame-info" id="frameInfo">
+          <div class="fi-item"><div class="fi-label">Svc ID</div><div class="fi-val" id="fi_svc">—</div></div>
+          <div class="fi-item"><div class="fi-label">Evt ID</div><div class="fi-val" id="fi_evt">—</div></div>
+          <div class="fi-item"><div class="fi-label">Session</div><div class="fi-val" id="fi_sid">—</div></div>
+          <div class="fi-item"><div class="fi-label">Len</div><div class="fi-val" id="fi_len">—</div></div>
+          <div class="fi-item"><div class="fi-label">CRC</div><div class="fi-val" id="fi_crc">—</div></div>
+          <div class="fi-item"><div class="fi-label">Cnt</div><div class="fi-val" id="fi_cnt">—</div></div>
+          <div class="fi-item"><div class="fi-label">MsgType</div><div class="fi-val" id="fi_mtype">—</div></div>
+          <div class="fi-item"><div class="fi-label">时间戳</div><div class="fi-val" id="fi_ts">—</div></div>
+        </div>
+      </div>
     </div>
 
-    <!-- SOME/IP 帧详情 -->
-    <div class="card" style="flex-shrink:0">
-      <div class="card-header">
-        <span class="card-title">🛡️ 最新 SOME/IP 帧</span>
-        <span id="e2eStatus" class="e2e-indicator e2e-ok"><span class="e2e-dot"></span>E2E OK</span>
-      </div>
-      <div class="frame-info" id="frameInfo">
-        <div class="fi-item"><div class="fi-label">Service ID</div><div class="fi-val" id="fi_svc">—</div></div>
-        <div class="fi-item"><div class="fi-label">Method/Event ID</div><div class="fi-val" id="fi_evt">—</div></div>
-        <div class="fi-item"><div class="fi-label">Session ID</div><div class="fi-val" id="fi_sid">—</div></div>
-        <div class="fi-item"><div class="fi-label">Length</div><div class="fi-val" id="fi_len">—</div></div>
-        <div class="fi-item"><div class="fi-label">E2E CRC</div><div class="fi-val" id="fi_crc">—</div></div>
-        <div class="fi-item"><div class="fi-label">E2E Counter</div><div class="fi-val" id="fi_cnt">—</div></div>
-        <div class="fi-item"><div class="fi-label">Msg Type</div><div class="fi-val" id="fi_mtype">—</div></div>
-        <div class="fi-item"><div class="fi-label">时间戳</div><div class="fi-val" id="fi_ts">—</div></div>
-      </div>
-    </div>
-
-    <!-- 实时日志面板：MCU(CP) + SOC(AP) 双栏 -->
+    <!-- 实时日志面板：MCU(CP) + SOC(AP) 双栏，flex:1 填满剩余空间 -->
     <div class="rt-log-row">
 
       <!-- MCU (CP) 日志 -->

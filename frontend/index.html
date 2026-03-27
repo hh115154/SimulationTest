@@ -26,66 +26,70 @@
     --radius:   8px;
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body {
+    height: 100%; overflow: hidden;
+  }
   body {
     background: var(--bg);
     color: var(--text);
     font-family: 'SF Mono', 'Cascadia Code', 'Consolas', monospace;
-    font-size: 13px;
-    line-height: 1.5;
-    overflow-x: hidden;
+    font-size: 12px;
+    line-height: 1.4;
+    display: flex; flex-direction: column;
   }
 
   /* ── Header ── */
   .header {
     background: var(--surface);
     border-bottom: 1px solid var(--border);
-    padding: 12px 20px;
+    padding: 6px 16px;
     display: flex;
     align-items: center;
     justify-content: space-between;
-    position: sticky;
-    top: 0;
+    flex-shrink: 0;
     z-index: 100;
+    height: 38px;
   }
   .header-title {
-    display: flex; align-items: center; gap: 10px;
+    display: flex; align-items: center; gap: 8px;
   }
-  .header-title h1 { font-size: 16px; font-weight: 600; color: var(--blue); }
-  .header-title .subtitle { color: var(--text2); font-size: 11px; }
+  .header-title h1 { font-size: 14px; font-weight: 600; color: var(--blue); }
+  .header-title .subtitle { color: var(--text2); font-size: 10px; }
   .ws-status {
     display: flex; align-items: center; gap: 6px;
-    font-size: 11px; color: var(--text2);
+    font-size: 10px; color: var(--text2);
   }
   .ws-dot {
-    width: 8px; height: 8px; border-radius: 50%;
+    width: 7px; height: 7px; border-radius: 50%;
     background: var(--danger); transition: background 0.3s;
   }
-  .ws-dot.connected { background: var(--green); box-shadow: 0 0 6px var(--green); }
+  .ws-dot.connected { background: var(--green); box-shadow: 0 0 5px var(--green); }
 
   /* ── Layout ── */
   .layout {
     display: grid;
-    grid-template-columns: 260px 1fr;
-    grid-template-rows: auto 1fr;
+    grid-template-columns: 230px 1fr;
     gap: 0;
-    height: calc(100vh - 49px);
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
   }
   .sidebar {
-    grid-row: 1 / 3;
     background: var(--surface);
     border-right: 1px solid var(--border);
     overflow-y: auto;
-    padding: 16px;
+    padding: 8px;
     display: flex;
     flex-direction: column;
-    gap: 16px;
+    gap: 6px;
   }
   .main-content {
-    overflow-y: auto;
-    padding: 16px;
+    overflow: hidden;
+    padding: 8px;
     display: flex;
     flex-direction: column;
-    gap: 16px;
+    gap: 6px;
+    min-height: 0;
   }
 
   /* ── Card ── */
@@ -93,30 +97,30 @@
     background: var(--surface2);
     border: 1px solid var(--border);
     border-radius: var(--radius);
-    padding: 14px;
+    padding: 8px 10px;
   }
   .card-header {
     display: flex; align-items: center; justify-content: space-between;
-    margin-bottom: 12px;
+    margin-bottom: 6px;
   }
   .card-title {
-    font-size: 12px; font-weight: 600;
+    font-size: 10px; font-weight: 600;
     text-transform: uppercase; letter-spacing: 0.05em;
     color: var(--text2);
   }
 
   /* ── Process Control ── */
-  .proc-block { margin-bottom: 14px; }
+  .proc-block { margin-bottom: 8px; }
   .proc-header {
     display: flex; align-items: center; justify-content: space-between;
-    margin-bottom: 8px;
+    margin-bottom: 4px;
   }
   .proc-name {
-    font-weight: 700; font-size: 13px;
-    display: flex; align-items: center; gap: 6px;
+    font-weight: 700; font-size: 11px;
+    display: flex; align-items: center; gap: 4px;
   }
   .proc-badge {
-    font-size: 10px; padding: 2px 7px; border-radius: 20px;
+    font-size: 9px; padding: 1px 5px; border-radius: 20px;
     background: var(--surface); color: var(--text2); border: 1px solid var(--border);
   }
   .proc-badge.running {
@@ -125,11 +129,11 @@
   .proc-badge.stopped {
     background: rgba(218,54,51,0.12); color: var(--danger); border-color: var(--danger);
   }
-  .proc-meta { font-size: 11px; color: var(--text2); margin-bottom: 8px; }
-  .btn-row { display: flex; gap: 6px; flex-wrap: wrap; }
+  .proc-meta { font-size: 10px; color: var(--text2); margin-bottom: 4px; }
+  .btn-row { display: flex; gap: 4px; flex-wrap: wrap; }
   .btn {
-    padding: 5px 12px; border-radius: 6px; border: 1px solid;
-    cursor: pointer; font-size: 12px; font-family: inherit;
+    padding: 3px 8px; border-radius: 5px; border: 1px solid;
+    cursor: pointer; font-size: 11px; font-family: inherit;
     transition: opacity 0.15s, transform 0.1s;
     font-weight: 500;
   }
@@ -142,9 +146,9 @@
   .btn:disabled { opacity: 0.4; cursor: not-allowed; }
 
   /* Demo 按钮 */
-  .demo-section { border-top: 1px solid var(--border); padding-top: 12px; }
+  .demo-section { border-top: 1px solid var(--border); padding-top: 6px; }
   .demo-btn-start {
-    width: 100%; padding: 10px; font-size: 14px; font-weight: 700;
+    width: 100%; padding: 6px; font-size: 12px; font-weight: 700;
     background: linear-gradient(135deg, rgba(35,134,54,0.3), rgba(31,111,235,0.3));
     color: var(--green); border: 1px solid var(--green);
     border-radius: var(--radius); cursor: pointer; font-family: inherit;
@@ -152,7 +156,7 @@
   }
   .demo-btn-start:hover { background: rgba(63,185,80,0.2); }
   .demo-btn-stop {
-    width: 100%; margin-top: 6px; padding: 8px; font-size: 13px; font-weight: 600;
+    width: 100%; margin-top: 4px; padding: 5px; font-size: 11px; font-weight: 600;
     background: rgba(218,54,51,0.15); color: var(--danger); border: 1px solid var(--danger);
     border-radius: var(--radius); cursor: pointer; font-family: inherit;
     transition: all 0.2s;
@@ -160,117 +164,118 @@
   .demo-btn-stop:hover { background: rgba(218,54,51,0.25); }
 
   /* ── Stats ── */
-  .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-  .stat-item { text-align: center; padding: 8px; background: var(--surface); border-radius: 6px; border: 1px solid var(--border); }
-  .stat-value { font-size: 20px; font-weight: 700; line-height: 1.2; }
-  .stat-label { font-size: 10px; color: var(--text2); margin-top: 2px; }
+  .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; }
+  .stat-item { text-align: center; padding: 4px; background: var(--surface); border-radius: 4px; border: 1px solid var(--border); }
+  .stat-value { font-size: 16px; font-weight: 700; line-height: 1.1; }
+  .stat-label { font-size: 9px; color: var(--text2); margin-top: 1px; }
   .stat-green { color: var(--green); }
   .stat-blue  { color: var(--blue); }
   .stat-orange{ color: var(--orange); }
   .stat-red   { color: var(--danger); }
 
   /* ── HMI Signal Input ── */
-  .hmi-input-section { display: flex; flex-direction: column; gap: 8px; }
-  .hmi-row { display: flex; flex-direction: column; gap: 3px; }
+  .hmi-input-section { display: flex; flex-direction: column; gap: 5px; }
+  .hmi-row { display: flex; flex-direction: column; gap: 2px; }
   .hmi-label-row {
     display: flex; justify-content: space-between; align-items: center;
-    font-size: 11px; color: var(--text2);
+    font-size: 10px; color: var(--text2);
   }
-  .hmi-val { font-weight: 600; color: var(--cyan); font-size: 12px; min-width: 42px; text-align: right; }
+  .hmi-val { font-weight: 600; color: var(--cyan); font-size: 11px; min-width: 38px; text-align: right; }
   input[type=range].hmi-slider {
-    width: 100%; height: 4px; border-radius: 2px; cursor: pointer;
+    width: 100%; height: 3px; border-radius: 2px; cursor: pointer;
     accent-color: var(--blue); background: var(--border);
   }
-  .hmi-toggle-row { display: flex; gap: 6px; }
+  .hmi-toggle-row { display: flex; gap: 4px; }
   .hmi-toggle {
-    flex: 1; padding: 5px 0; border-radius: 6px; border: 1px solid;
-    cursor: pointer; font-size: 11px; font-family: inherit; font-weight: 600;
+    flex: 1; padding: 3px 0; border-radius: 5px; border: 1px solid;
+    cursor: pointer; font-size: 10px; font-family: inherit; font-weight: 600;
     transition: all 0.15s;
   }
   .hmi-toggle.off { background: rgba(139,148,158,0.08); color: var(--text2); border-color: var(--border); }
   .hmi-toggle.on  { background: rgba(218,54,51,0.25); color: var(--danger); border-color: var(--danger); }
   .hmi-toggle.door-on { background: rgba(243,199,47,0.2); color: var(--yellow); border-color: var(--yellow); }
   .hmi-send-btn {
-    width: 100%; padding: 7px; border-radius: 6px; border: 1px solid var(--blue);
+    width: 100%; padding: 5px; border-radius: 5px; border: 1px solid var(--blue);
     background: rgba(31,111,235,0.15); color: var(--blue);
-    cursor: pointer; font-size: 12px; font-family: inherit; font-weight: 600;
-    transition: all 0.2s; margin-top: 4px;
+    cursor: pointer; font-size: 11px; font-family: inherit; font-weight: 600;
+    transition: all 0.2s; margin-top: 2px;
   }
   .hmi-send-btn:hover { background: rgba(31,111,235,0.3); }
   .hmi-send-btn:disabled { opacity: 0.4; cursor: not-allowed; }
   .hmi-source-badge {
-    display: inline-block; padding: 1px 6px; border-radius: 4px;
-    font-size: 10px; font-weight: 600;
+    display: inline-block; padding: 1px 5px; border-radius: 4px;
+    font-size: 9px; font-weight: 600;
   }
   .source-ap  { background: rgba(88,166,255,0.15); color: var(--blue); border: 1px solid var(--blue); }
   .source-cp  { background: rgba(247,129,102,0.15); color: var(--orange); border: 1px solid var(--orange); }
 
   /* ── Subscription toggles ── */
-  .sub-list { display: flex; flex-direction: column; gap: 6px; }
+  .sub-list { display: flex; flex-direction: column; gap: 3px; }
   .sub-item {
     display: flex; align-items: center; justify-content: space-between;
-    padding: 6px 10px; background: var(--surface); border-radius: 6px;
+    padding: 3px 7px; background: var(--surface); border-radius: 5px;
     border: 1px solid var(--border); cursor: pointer; transition: border-color 0.15s;
   }
   .sub-item:hover { border-color: var(--blue); }
   .sub-item.active { border-color: var(--green); background: rgba(63,185,80,0.06); }
-  .sub-name { font-size: 12px; }
+  .sub-name { font-size: 11px; }
   .sub-toggle {
-    width: 34px; height: 18px; border-radius: 9px;
+    width: 28px; height: 15px; border-radius: 8px;
     background: var(--border); position: relative; transition: background 0.2s;
+    flex-shrink: 0;
   }
   .sub-toggle::after {
     content: ''; position: absolute; top: 2px; left: 2px;
-    width: 14px; height: 14px; border-radius: 50%;
+    width: 11px; height: 11px; border-radius: 50%;
     background: white; transition: left 0.2s;
   }
   .sub-item.active .sub-toggle { background: var(--green); }
-  .sub-item.active .sub-toggle::after { left: 18px; }
+  .sub-item.active .sub-toggle::after { left: 15px; }
 
   /* ── Charts row ── */
-  .charts-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
-  .chart-card { background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px; }
-  .chart-title { font-size: 11px; font-weight: 600; color: var(--text2); text-transform: uppercase; margin-bottom: 4px; }
-  .chart-value { font-size: 28px; font-weight: 700; margin-bottom: 8px; }
-  .chart-unit { font-size: 12px; color: var(--text2); font-weight: 400; }
-  .chart-canvas { height: 80px; }
+  .charts-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; }
+  .chart-card { background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius); padding: 8px 10px; }
+  .chart-title { font-size: 10px; font-weight: 600; color: var(--text2); text-transform: uppercase; margin-bottom: 2px; }
+  .chart-value { font-size: 20px; font-weight: 700; margin-bottom: 4px; }
+  .chart-unit { font-size: 10px; color: var(--text2); font-weight: 400; }
+  .chart-canvas { height: 56px; }
 
   /* ── Signal gauges ── */
-  .gauges-row { display: grid; grid-template-columns: repeat(6, 1fr); gap: 10px; }
+  .gauges-row { display: grid; grid-template-columns: repeat(6, 1fr); gap: 6px; }
   .gauge-card {
     background: var(--surface2); border: 1px solid var(--border);
-    border-radius: var(--radius); padding: 12px; text-align: center;
+    border-radius: var(--radius); padding: 7px 6px; text-align: center;
     transition: border-color 0.3s;
   }
   .gauge-card.active { border-color: rgba(88,166,255,0.4); }
-  .gauge-name { font-size: 10px; color: var(--text2); text-transform: uppercase; margin-bottom: 6px; letter-spacing: 0.04em; }
-  .gauge-val { font-size: 22px; font-weight: 700; line-height: 1; }
-  .gauge-unit { font-size: 10px; color: var(--text2); margin-top: 3px; }
-  .gauge-bar-wrap { height: 4px; background: var(--border); border-radius: 2px; margin-top: 8px; overflow: hidden; }
+  .gauge-name { font-size: 9px; color: var(--text2); text-transform: uppercase; margin-bottom: 3px; letter-spacing: 0.04em; }
+  .gauge-val { font-size: 17px; font-weight: 700; line-height: 1; }
+  .gauge-unit { font-size: 9px; color: var(--text2); margin-top: 2px; }
+  .gauge-bar-wrap { height: 3px; background: var(--border); border-radius: 2px; margin-top: 5px; overflow: hidden; }
   .gauge-bar { height: 100%; border-radius: 2px; transition: width 0.3s; background: var(--blue); }
 
   /* ── SOME/IP 帧面板 ── */
-  .frame-row { display: grid; grid-template-columns: 1fr 2fr; gap: 12px; }
-  .frame-info { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-  .fi-item { background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 8px; }
-  .fi-label { font-size: 10px; color: var(--text2); }
-  .fi-val { font-size: 14px; font-weight: 600; margin-top: 2px; font-family: 'SF Mono', monospace; }
+  .frame-row { display: grid; grid-template-columns: 1fr 2fr; gap: 8px; }
+  .frame-info { display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px; }
+  .fi-item { background: var(--surface); border: 1px solid var(--border); border-radius: 5px; padding: 5px 6px; }
+  .fi-label { font-size: 9px; color: var(--text2); }
+  .fi-val { font-size: 12px; font-weight: 600; margin-top: 1px; font-family: 'SF Mono', monospace; }
 
-  /* ── 日志 ── */
+  /* ── 日志（原始）── */
   .log-panel {
     background: #0d1117; border: 1px solid var(--border);
-    border-radius: 6px; height: 180px; overflow-y: auto;
-    padding: 8px 10px; font-size: 11px; font-family: 'SF Mono', monospace;
+    border-radius: 5px; height: 100px; overflow-y: auto;
+    padding: 5px 8px; font-size: 10px; font-family: 'SF Mono', monospace;
   }
-  .log-line { padding: 1.5px 0; border-bottom: 1px solid rgba(48,54,61,0.4); display: flex; gap: 4px; align-items: flex-start; }
+  .log-line { padding: 1px 0; border-bottom: 1px solid rgba(48,54,61,0.4); display: flex; gap: 4px; align-items: flex-start; }
   .log-line:last-child { border-bottom: none; }
-  .log-ts { color: var(--text2); min-width: 82px; flex-shrink: 0; }
-  .log-proc-ap { color: var(--blue); font-weight: 600; min-width: 40px; flex-shrink: 0; }
-  .log-proc-cp { color: var(--orange); font-weight: 600; min-width: 40px; flex-shrink: 0; }
+  .log-ts { color: var(--text2); min-width: 76px; flex-shrink: 0; }
+  .log-proc-ap { color: var(--blue); font-weight: 600; min-width: 36px; flex-shrink: 0; }
+  .log-proc-cp { color: var(--orange); font-weight: 600; min-width: 36px; flex-shrink: 0; }
   .log-msg { flex: 1; word-break: break-all; }
-  .log-tabs { display: flex; gap: 2px; margin-bottom: 8px; }
+  .log-tabs { display: flex; gap: 2px; margin-bottom: 5px; }
   .log-tab {
-    padding: 4px 12px; font-size: 11px; border: 1px solid var(--border);
+    padding: 2px 10px; font-size: 10px; border: 1px solid var(--border);
     border-radius: 4px; cursor: pointer; background: var(--surface);
     color: var(--text2); transition: all 0.15s;
   }
@@ -278,40 +283,45 @@
 
   /* ── 实时日志面板（双栏）── */
   .rt-log-row {
-    display: grid; grid-template-columns: 1fr 1fr; gap: 12px;
+    display: grid; grid-template-columns: 1fr 1fr; gap: 6px;
+    flex: 1; min-height: 0;
+  }
+  .rt-log-card {
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 7px 8px;
+    display: flex; flex-direction: column; min-height: 0;
   }
   .rt-log-panel {
     background: #0a0d12; border: 1px solid var(--border);
-    border-radius: 6px; height: 220px; overflow-y: auto;
-    padding: 8px 10px; font-size: 11px; font-family: 'SF Mono', monospace;
-    position: relative;
+    border-radius: 4px; flex: 1; min-height: 0; overflow-y: auto;
+    padding: 5px 7px; font-size: 10px; font-family: 'SF Mono', monospace;
   }
   .rt-log-header {
     display: flex; align-items: center; justify-content: space-between;
-    margin-bottom: 10px;
+    margin-bottom: 5px; flex-shrink: 0;
   }
   .rt-log-title {
-    font-size: 12px; font-weight: 600; text-transform: uppercase;
+    font-size: 10px; font-weight: 600; text-transform: uppercase;
     letter-spacing: 0.05em;
   }
   .rt-log-title.mcu { color: var(--orange); }
   .rt-log-title.soc { color: var(--blue); }
   .rt-log-badge {
-    font-size: 10px; padding: 2px 7px; border-radius: 10px;
+    font-size: 9px; padding: 1px 5px; border-radius: 8px;
     font-weight: 600;
   }
   .rt-log-badge.mcu { background: rgba(247,129,102,0.12); color: var(--orange); border: 1px solid var(--orange); }
   .rt-log-badge.soc { background: rgba(88,166,255,0.12);  color: var(--blue);   border: 1px solid var(--blue); }
   .rt-log-entry {
-    display: flex; gap: 4px; align-items: flex-start;
-    padding: 2px 0; border-bottom: 1px solid rgba(48,54,61,0.35);
-    font-size: 10.5px;
+    display: flex; gap: 3px; align-items: flex-start;
+    padding: 1.5px 0; border-bottom: 1px solid rgba(48,54,61,0.35);
+    font-size: 10px;
   }
   .rt-log-entry:last-child { border-bottom: none; }
-  .rt-ts { color: var(--text2); min-width: 78px; flex-shrink: 0; }
+  .rt-ts { color: var(--text2); min-width: 72px; flex-shrink: 0; }
   .rt-level {
-    min-width: 46px; flex-shrink: 0; font-weight: 700; font-size: 10px;
-    padding: 0 4px; border-radius: 3px; text-align: center;
+    min-width: 40px; flex-shrink: 0; font-weight: 700; font-size: 9px;
+    padding: 0 3px; border-radius: 3px; text-align: center;
   }
   .rt-level-INFO    { background: rgba(63,185,80,0.12);   color: var(--green); }
   .rt-level-WARN    { background: rgba(227,179,65,0.15);  color: var(--yellow); }
@@ -319,18 +329,18 @@
   .rt-level-FATAL   { background: rgba(218,54,51,0.3);    color: #ff6e6e; }
   .rt-level-DEBUG   { background: rgba(139,148,158,0.1);  color: var(--text2); }
   .rt-level-VERBOSE { background: rgba(139,148,158,0.08); color: var(--text2); }
-  .rt-module { color: var(--cyan); min-width: 56px; flex-shrink: 0; font-weight: 600; }
+  .rt-module { color: var(--cyan); min-width: 52px; flex-shrink: 0; font-weight: 600; }
   .rt-event  { color: var(--purple); flex-shrink: 0; font-weight: 600; margin-right: 2px; }
   .rt-data   { color: var(--text); flex: 1; word-break: break-all; }
   .rt-clear-btn {
-    font-size: 10px; padding: 2px 8px; border-radius: 4px; cursor: pointer;
+    font-size: 9px; padding: 1px 6px; border-radius: 3px; cursor: pointer;
     background: rgba(139,148,158,0.1); color: var(--text2);
     border: 1px solid var(--border); font-family: inherit;
     transition: all 0.15s;
   }
   .rt-clear-btn:hover { border-color: var(--blue); color: var(--blue); }
   .rt-log-count {
-    font-size: 10px; color: var(--text2); min-width: 30px; text-align: right;
+    font-size: 9px; color: var(--text2); min-width: 28px; text-align: right;
   }
   @media (max-width: 900px) {
     .rt-log-row { grid-template-columns: 1fr; }
@@ -339,27 +349,27 @@
   /* ── 通信矩阵 ── */
   .comm-matrix {
     display: flex; align-items: center; justify-content: center;
-    gap: 20px; padding: 16px;
+    gap: 16px; padding: 8px 12px;
   }
   .comm-node {
     background: var(--surface); border: 2px solid var(--border);
-    border-radius: 10px; padding: 16px 20px; text-align: center; min-width: 140px;
+    border-radius: 8px; padding: 8px 14px; text-align: center; min-width: 120px;
   }
-  .comm-node.active { border-color: var(--green); box-shadow: 0 0 12px rgba(63,185,80,0.2); }
+  .comm-node.active { border-color: var(--green); box-shadow: 0 0 8px rgba(63,185,80,0.2); }
   .comm-node.inactive { border-color: var(--danger); }
-  .comm-node-name { font-size: 14px; font-weight: 700; }
-  .comm-node-role { font-size: 10px; color: var(--text2); margin-top: 2px; }
-  .comm-node-pid { font-size: 11px; color: var(--text2); margin-top: 4px; }
-  .comm-arrow { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+  .comm-node-name { font-size: 12px; font-weight: 700; }
+  .comm-node-role { font-size: 9px; color: var(--text2); margin-top: 1px; }
+  .comm-node-pid { font-size: 10px; color: var(--text2); margin-top: 3px; }
+  .comm-arrow { display: flex; flex-direction: column; align-items: center; gap: 3px; }
   .comm-arrow-line {
-    display: flex; align-items: center; gap: 8px;
-    font-size: 11px; color: var(--text2);
+    display: flex; align-items: center; gap: 6px;
+    font-size: 10px; color: var(--text2);
   }
   .arrow-anim {
-    display: flex; gap: 4px; align-items: center;
+    display: flex; gap: 3px; align-items: center;
   }
   .arrow-dot {
-    width: 8px; height: 8px; border-radius: 50%;
+    width: 6px; height: 6px; border-radius: 50%;
     background: var(--green); opacity: 0;
     animation: flowDot 1.2s linear infinite;
   }
@@ -369,16 +379,16 @@
     0%,100% { opacity:0; transform: scale(0.6); }
     50%      { opacity:1; transform: scale(1); }
   }
-  .arrow-label { font-size: 10px; color: var(--cyan); font-weight: 600; }
+  .arrow-label { font-size: 9px; color: var(--cyan); font-weight: 600; }
 
   /* ── E2E 指示灯 ── */
   .e2e-indicator {
-    display: inline-flex; align-items: center; gap: 5px;
-    font-size: 11px; padding: 3px 8px; border-radius: 12px;
+    display: inline-flex; align-items: center; gap: 4px;
+    font-size: 10px; padding: 2px 6px; border-radius: 10px;
   }
   .e2e-ok    { background: rgba(63,185,80,0.12); color: var(--green); border: 1px solid var(--green); }
   .e2e-fail  { background: rgba(218,54,51,0.12);  color: var(--danger); border: 1px solid var(--danger); }
-  .e2e-dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+  .e2e-dot { width: 5px; height: 5px; border-radius: 50%; background: currentColor; }
 
   /* Responsive small screens */
   @media (max-width: 1200px) {
@@ -391,17 +401,17 @@
   }
 
   /* Scrollbar */
-  ::-webkit-scrollbar { width: 4px; height: 4px; }
-  ::-webkit-scrollbar-track { background: var(--surface); }
+  ::-webkit-scrollbar { width: 3px; height: 3px; }
+  ::-webkit-scrollbar-track { background: transparent; }
   ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
 
   .badge-error {
     background: rgba(218,54,51,0.15); color: var(--danger);
-    padding: 2px 6px; border-radius: 4px; font-size: 10px; font-weight: 700;
+    padding: 1px 5px; border-radius: 3px; font-size: 9px; font-weight: 700;
   }
   .badge-ok {
     background: rgba(63,185,80,0.15); color: var(--green);
-    padding: 2px 6px; border-radius: 4px; font-size: 10px; font-weight: 700;
+    padding: 1px 5px; border-radius: 3px; font-size: 9px; font-weight: 700;
   }
 </style>
 </head>
@@ -410,7 +420,7 @@
 <!-- ── Header ── -->
 <header class="header">
   <div class="header-title">
-    <span style="font-size:20px">⚙️</span>
+    <span style="font-size:16px">⚙️</span>
     <div>
       <h1>AUTOSAR IPC 可视化监控面板</h1>
       <div class="subtitle">MyAutoSarAp (SOC/AP) ↔ SOME/IP UDP ↔ MyAutoSarCP (MCU/CP)</div>
@@ -437,7 +447,7 @@
       <div class="demo-section">
         <button class="demo-btn-start" onclick="sendCmd({action:'start_demo'})">▶ 启动完整 Demo</button>
         <button class="demo-btn-stop"  onclick="sendCmd({action:'stop_demo'})">⬛ 停止 Demo</button>
-        <button class="btn btn-gray" style="width:100%;margin-top:6px;font-size:11px" onclick="sendCmd({action:'clear_stats'})">↺ 清空统计</button>
+        <button class="btn btn-gray" style="width:100%;margin-top:4px;font-size:10px" onclick="sendCmd({action:'clear_stats'})">↺ 清空统计</button>
       </div>
     </div>
 
@@ -530,7 +540,7 @@
                 onclick="sendHmiInput()" disabled>
           📤 下发信号 → MCU (CP)
         </button>
-        <div style="font-size:10px;color:var(--text2);text-align:center;margin-top:2px">
+        <div style="font-size:9px;color:var(--text2);text-align:center;margin-top:2px">
           数据流: HMI → monitor → CP (UDP:30503) → SOME/IP → AP → HMI显示
         </div>
 
@@ -578,7 +588,7 @@
   <main class="main-content">
 
     <!-- 通信矩阵 -->
-    <div class="card">
+    <div class="card" style="flex-shrink:0">
       <div class="card-header">
         <span class="card-title">🔗 通信架构</span>
         <span id="e2eGlobal" class="e2e-indicator e2e-ok"><span class="e2e-dot"></span>E2E OK</span>
@@ -588,7 +598,7 @@
           <div class="comm-node-name" style="color:var(--orange)">MyAutoSarCP</div>
           <div class="comm-node-role">MCU · AUTOSAR CP R25-11</div>
           <div class="comm-node-role">SOME/IP Provider</div>
-          <div class="comm-node-role" style="color:var(--cyan);font-size:10px">HMI Cmd UDP:30503</div>
+          <div class="comm-node-role" style="color:var(--cyan);font-size:9px">HMI Cmd UDP:30503</div>
           <div class="comm-node-pid" id="cpNodePid">PID: —</div>
         </div>
         <div class="comm-arrow">
@@ -600,27 +610,27 @@
             </div>
           </div>
           <div class="arrow-label">SOME/IP 0x1001</div>
-          <div style="font-size:10px;color:var(--text2)">UDP 127.0.0.1:30501</div>
-          <div style="font-size:10px;color:var(--text2)">Event 0x8001 · 10ms</div>
-          <div style="font-size:10px;color:var(--cyan);margin-top:4px" id="lastFrameAge">最后帧: —</div>
+          <div style="font-size:9px;color:var(--text2)">UDP 127.0.0.1:30501</div>
+          <div style="font-size:9px;color:var(--text2)">Event 0x8001 · 10ms</div>
+          <div style="font-size:9px;color:var(--cyan);margin-top:3px" id="lastFrameAge">最后帧: —</div>
           <!-- HMI 下行指示 -->
-          <div style="font-size:10px;color:var(--purple);margin-top:3px" id="hmiCmdStatus">⬆ HMI→MCU: —</div>
+          <div style="font-size:9px;color:var(--purple);margin-top:2px" id="hmiCmdStatus">⬆ HMI→MCU: —</div>
         </div>
         <div class="comm-node" id="apNode">
           <div class="comm-node-name" style="color:var(--blue)">MyAutoSarAp</div>
           <div class="comm-node-role">SOC · AUTOSAR AP R25-11</div>
           <div class="comm-node-role">SOME/IP Consumer</div>
-          <div class="comm-node-role" style="color:var(--green);font-size:10px">📊 数据采集点</div>
+          <div class="comm-node-role" style="color:var(--green);font-size:9px">📊 数据采集点</div>
           <div class="comm-node-pid" id="apNodePid">PID: —</div>
         </div>
       </div>
     </div>
 
     <!-- Gauges -->
-    <div class="card">
+    <div class="card" style="flex-shrink:0">
       <div class="card-header">
         <span class="card-title">📈 实时信号值</span>
-        <span style="font-size:11px;color:var(--text2)" id="lastUpdate">等待数据...</span>
+        <span style="font-size:10px;color:var(--text2)" id="lastUpdate">等待数据...</span>
       </div>
       <div class="gauges-row">
         <div class="gauge-card" id="g_speed">
@@ -663,7 +673,7 @@
     </div>
 
     <!-- 时序图 -->
-    <div class="charts-row">
+    <div class="charts-row" style="flex-shrink:0">
       <div class="chart-card">
         <div class="chart-title">车速 (km/h)</div>
         <div class="chart-value" style="color:var(--blue)"><span id="cv_speed">—</span><span class="chart-unit"> km/h</span></div>
@@ -682,7 +692,7 @@
     </div>
 
     <!-- SOME/IP 帧详情 -->
-    <div class="card">
+    <div class="card" style="flex-shrink:0">
       <div class="card-header">
         <span class="card-title">🛡️ 最新 SOME/IP 帧</span>
         <span id="e2eStatus" class="e2e-indicator e2e-ok"><span class="e2e-dot"></span>E2E OK</span>
@@ -703,33 +713,33 @@
     <div class="rt-log-row">
 
       <!-- MCU (CP) 日志 -->
-      <div class="card" style="padding:14px">
+      <div class="rt-log-card">
         <div class="rt-log-header">
-          <div style="display:flex;align-items:center;gap:8px">
+          <div style="display:flex;align-items:center;gap:6px">
             <span class="rt-log-title mcu">🔶 MCU (CP) 实时日志</span>
             <span class="rt-log-badge mcu" id="mcuLogBadge">0 条</span>
           </div>
           <button class="rt-clear-btn" onclick="clearRtLog('mcu')">清空</button>
         </div>
         <div class="rt-log-panel" id="mcuLogPanel">
-          <div style="color:var(--text2);font-size:11px;text-align:center;margin-top:60px">
-            等待 MCU 日志...<br><span style="font-size:10px">启动 Demo 后自动显示</span>
+          <div style="color:var(--text2);font-size:10px;text-align:center;margin-top:30px">
+            等待 MCU 日志...<br><span style="font-size:9px">启动 Demo 后自动显示</span>
           </div>
         </div>
       </div>
 
       <!-- SOC (AP) 日志 -->
-      <div class="card" style="padding:14px">
+      <div class="rt-log-card">
         <div class="rt-log-header">
-          <div style="display:flex;align-items:center;gap:8px">
+          <div style="display:flex;align-items:center;gap:6px">
             <span class="rt-log-title soc">🔷 SOC (AP) 实时日志</span>
             <span class="rt-log-badge soc" id="socLogBadge">0 条</span>
           </div>
           <button class="rt-clear-btn" onclick="clearRtLog('soc')">清空</button>
         </div>
         <div class="rt-log-panel" id="socLogPanel">
-          <div style="color:var(--text2);font-size:11px;text-align:center;margin-top:60px">
-            等待 SOC 日志...<br><span style="font-size:10px">启动 Demo 后自动显示</span>
+          <div style="color:var(--text2);font-size:10px;text-align:center;margin-top:30px">
+            等待 SOC 日志...<br><span style="font-size:9px">启动 Demo 后自动显示</span>
           </div>
         </div>
       </div>
@@ -737,16 +747,18 @@
     </div>
 
     <!-- 普通进程日志（原始输出，可折叠）-->
-    <div class="card">
-      <div class="card-header">
-        <span class="card-title">📋 进程原始日志</span>
-        <div class="log-tabs">
-          <div class="log-tab active" id="logTabAp" onclick="switchLog('ap')">AP (SOC)</div>
-          <div class="log-tab" id="logTabCp" onclick="switchLog('cp')">CP (MCU)</div>
+    <details class="card" style="flex-shrink:0">
+      <summary style="cursor:pointer;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.05em;color:var(--text2);display:flex;justify-content:space-between;align-items:center;list-style:none;padding:0">
+        <span>📋 进程原始日志</span>
+        <div class="log-tabs" style="margin-bottom:0">
+          <div class="log-tab active" id="logTabAp" onclick="event.stopPropagation();switchLog('ap')">AP (SOC)</div>
+          <div class="log-tab" id="logTabCp" onclick="event.stopPropagation();switchLog('cp')">CP (MCU)</div>
         </div>
+      </summary>
+      <div style="margin-top:6px">
+        <div class="log-panel" id="logPanel"></div>
       </div>
-      <div class="log-panel" id="logPanel"></div>
-    </div>
+    </details>
 
   </main>
 </div>

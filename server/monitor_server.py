@@ -416,6 +416,52 @@ def _log_reader(key: str, proc: subprocess.Popen, log_file, loop):
             except Exception:
                 pass  # 解析失败时当普通日志处理
 
+        # ── MCU(CP) 结构化日志解析 ─────────────────────────────────────────
+        # CP 输出 "[MCU_LOG] {...}" 时，解析并广播为独立的 proc_log 事件
+        if key == "cp" and line.startswith("[MCU_LOG]"):
+            try:
+                json_str = line[len("[MCU_LOG]"):].strip()
+                log_data = json.loads(json_str)
+                now_str  = datetime.now().strftime("%H:%M:%S.%f")[:-3]
+                msg = json.dumps({
+                    "type":    "proc_log",
+                    "process": "cp",
+                    "level":   log_data.get("level", "INFO"),
+                    "module":  log_data.get("module", "CP"),
+                    "event":   log_data.get("event", ""),
+                    "data":    {k: v for k, v in log_data.items()
+                                if k not in ("level", "module", "event")},
+                    "raw":     line,
+                    "ts_str":  now_str,
+                })
+                asyncio.run_coroutine_threadsafe(broadcast(msg), loop)
+                continue
+            except Exception:
+                pass
+
+        # ── SOC(AP) 结构化日志解析 ─────────────────────────────────────────
+        # AP 输出 "[SOC_LOG] {...}" 时，解析并广播为独立的 proc_log 事件
+        if key == "ap" and line.startswith("[SOC_LOG]"):
+            try:
+                json_str = line[len("[SOC_LOG]"):].strip()
+                log_data = json.loads(json_str)
+                now_str  = datetime.now().strftime("%H:%M:%S.%f")[:-3]
+                msg = json.dumps({
+                    "type":    "proc_log",
+                    "process": "ap",
+                    "level":   log_data.get("level", "INFO"),
+                    "module":  log_data.get("ctx", "AP"),
+                    "event":   log_data.get("msg", ""),
+                    "data":    {k: v for k, v in log_data.items()
+                                if k not in ("level", "ctx", "msg")},
+                    "raw":     line,
+                    "ts_str":  now_str,
+                })
+                asyncio.run_coroutine_threadsafe(broadcast(msg), loop)
+                continue
+            except Exception:
+                pass
+
         # ── 普通日志广播 ────────────────────────────────────────────────────
         msg = json.dumps({
             "type":    "log",

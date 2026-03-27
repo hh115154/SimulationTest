@@ -259,14 +259,15 @@
   /* ── 日志 ── */
   .log-panel {
     background: #0d1117; border: 1px solid var(--border);
-    border-radius: 6px; height: 200px; overflow-y: auto;
+    border-radius: 6px; height: 180px; overflow-y: auto;
     padding: 8px 10px; font-size: 11px; font-family: 'SF Mono', monospace;
   }
-  .log-line { padding: 1px 0; border-bottom: 1px solid rgba(48,54,61,0.5); }
+  .log-line { padding: 1.5px 0; border-bottom: 1px solid rgba(48,54,61,0.4); display: flex; gap: 4px; align-items: flex-start; }
   .log-line:last-child { border-bottom: none; }
-  .log-ts { color: var(--text2); margin-right: 6px; }
-  .log-proc-ap { color: var(--blue); font-weight: 600; margin-right: 4px; }
-  .log-proc-cp { color: var(--orange); font-weight: 600; margin-right: 4px; }
+  .log-ts { color: var(--text2); min-width: 82px; flex-shrink: 0; }
+  .log-proc-ap { color: var(--blue); font-weight: 600; min-width: 40px; flex-shrink: 0; }
+  .log-proc-cp { color: var(--orange); font-weight: 600; min-width: 40px; flex-shrink: 0; }
+  .log-msg { flex: 1; word-break: break-all; }
   .log-tabs { display: flex; gap: 2px; margin-bottom: 8px; }
   .log-tab {
     padding: 4px 12px; font-size: 11px; border: 1px solid var(--border);
@@ -274,6 +275,66 @@
     color: var(--text2); transition: all 0.15s;
   }
   .log-tab.active { background: var(--surface2); color: var(--text); border-color: var(--blue); }
+
+  /* ── 实时日志面板（双栏）── */
+  .rt-log-row {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 12px;
+  }
+  .rt-log-panel {
+    background: #0a0d12; border: 1px solid var(--border);
+    border-radius: 6px; height: 220px; overflow-y: auto;
+    padding: 8px 10px; font-size: 11px; font-family: 'SF Mono', monospace;
+    position: relative;
+  }
+  .rt-log-header {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 10px;
+  }
+  .rt-log-title {
+    font-size: 12px; font-weight: 600; text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+  .rt-log-title.mcu { color: var(--orange); }
+  .rt-log-title.soc { color: var(--blue); }
+  .rt-log-badge {
+    font-size: 10px; padding: 2px 7px; border-radius: 10px;
+    font-weight: 600;
+  }
+  .rt-log-badge.mcu { background: rgba(247,129,102,0.12); color: var(--orange); border: 1px solid var(--orange); }
+  .rt-log-badge.soc { background: rgba(88,166,255,0.12);  color: var(--blue);   border: 1px solid var(--blue); }
+  .rt-log-entry {
+    display: flex; gap: 4px; align-items: flex-start;
+    padding: 2px 0; border-bottom: 1px solid rgba(48,54,61,0.35);
+    font-size: 10.5px;
+  }
+  .rt-log-entry:last-child { border-bottom: none; }
+  .rt-ts { color: var(--text2); min-width: 78px; flex-shrink: 0; }
+  .rt-level {
+    min-width: 46px; flex-shrink: 0; font-weight: 700; font-size: 10px;
+    padding: 0 4px; border-radius: 3px; text-align: center;
+  }
+  .rt-level-INFO    { background: rgba(63,185,80,0.12);   color: var(--green); }
+  .rt-level-WARN    { background: rgba(227,179,65,0.15);  color: var(--yellow); }
+  .rt-level-ERROR   { background: rgba(218,54,51,0.15);   color: var(--danger); }
+  .rt-level-FATAL   { background: rgba(218,54,51,0.3);    color: #ff6e6e; }
+  .rt-level-DEBUG   { background: rgba(139,148,158,0.1);  color: var(--text2); }
+  .rt-level-VERBOSE { background: rgba(139,148,158,0.08); color: var(--text2); }
+  .rt-module { color: var(--cyan); min-width: 56px; flex-shrink: 0; font-weight: 600; }
+  .rt-event  { color: var(--purple); flex-shrink: 0; font-weight: 600; margin-right: 2px; }
+  .rt-data   { color: var(--text); flex: 1; word-break: break-all; }
+  .rt-clear-btn {
+    font-size: 10px; padding: 2px 8px; border-radius: 4px; cursor: pointer;
+    background: rgba(139,148,158,0.1); color: var(--text2);
+    border: 1px solid var(--border); font-family: inherit;
+    transition: all 0.15s;
+  }
+  .rt-clear-btn:hover { border-color: var(--blue); color: var(--blue); }
+  .rt-log-count {
+    font-size: 10px; color: var(--text2); min-width: 30px; text-align: right;
+  }
+  @media (max-width: 900px) {
+    .rt-log-row { grid-template-columns: 1fr; }
+  }
 
   /* ── 通信矩阵 ── */
   .comm-matrix {
@@ -620,35 +681,71 @@
       </div>
     </div>
 
-    <!-- SOME/IP 帧详情 + E2E -->
-    <div class="frame-row">
-      <div class="card">
-        <div class="card-header">
-          <span class="card-title">🛡️ 最新 SOME/IP 帧</span>
-          <span id="e2eStatus" class="e2e-indicator e2e-ok"><span class="e2e-dot"></span>E2E OK</span>
+    <!-- SOME/IP 帧详情 -->
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">🛡️ 最新 SOME/IP 帧</span>
+        <span id="e2eStatus" class="e2e-indicator e2e-ok"><span class="e2e-dot"></span>E2E OK</span>
+      </div>
+      <div class="frame-info" id="frameInfo">
+        <div class="fi-item"><div class="fi-label">Service ID</div><div class="fi-val" id="fi_svc">—</div></div>
+        <div class="fi-item"><div class="fi-label">Method/Event ID</div><div class="fi-val" id="fi_evt">—</div></div>
+        <div class="fi-item"><div class="fi-label">Session ID</div><div class="fi-val" id="fi_sid">—</div></div>
+        <div class="fi-item"><div class="fi-label">Length</div><div class="fi-val" id="fi_len">—</div></div>
+        <div class="fi-item"><div class="fi-label">E2E CRC</div><div class="fi-val" id="fi_crc">—</div></div>
+        <div class="fi-item"><div class="fi-label">E2E Counter</div><div class="fi-val" id="fi_cnt">—</div></div>
+        <div class="fi-item"><div class="fi-label">Msg Type</div><div class="fi-val" id="fi_mtype">—</div></div>
+        <div class="fi-item"><div class="fi-label">时间戳</div><div class="fi-val" id="fi_ts">—</div></div>
+      </div>
+    </div>
+
+    <!-- 实时日志面板：MCU(CP) + SOC(AP) 双栏 -->
+    <div class="rt-log-row">
+
+      <!-- MCU (CP) 日志 -->
+      <div class="card" style="padding:14px">
+        <div class="rt-log-header">
+          <div style="display:flex;align-items:center;gap:8px">
+            <span class="rt-log-title mcu">🔶 MCU (CP) 实时日志</span>
+            <span class="rt-log-badge mcu" id="mcuLogBadge">0 条</span>
+          </div>
+          <button class="rt-clear-btn" onclick="clearRtLog('mcu')">清空</button>
         </div>
-        <div class="frame-info" id="frameInfo">
-          <div class="fi-item"><div class="fi-label">Service ID</div><div class="fi-val" id="fi_svc">—</div></div>
-          <div class="fi-item"><div class="fi-label">Method/Event ID</div><div class="fi-val" id="fi_evt">—</div></div>
-          <div class="fi-item"><div class="fi-label">Session ID</div><div class="fi-val" id="fi_sid">—</div></div>
-          <div class="fi-item"><div class="fi-label">Length</div><div class="fi-val" id="fi_len">—</div></div>
-          <div class="fi-item"><div class="fi-label">E2E CRC</div><div class="fi-val" id="fi_crc">—</div></div>
-          <div class="fi-item"><div class="fi-label">E2E Counter</div><div class="fi-val" id="fi_cnt">—</div></div>
-          <div class="fi-item"><div class="fi-label">Msg Type</div><div class="fi-val" id="fi_mtype">—</div></div>
-          <div class="fi-item"><div class="fi-label">时间戳</div><div class="fi-val" id="fi_ts">—</div></div>
+        <div class="rt-log-panel" id="mcuLogPanel">
+          <div style="color:var(--text2);font-size:11px;text-align:center;margin-top:60px">
+            等待 MCU 日志...<br><span style="font-size:10px">启动 Demo 后自动显示</span>
+          </div>
         </div>
       </div>
 
-      <div class="card">
-        <div class="card-header">
-          <span class="card-title">📋 进程日志</span>
-          <div class="log-tabs">
-            <div class="log-tab active" id="logTabAp" onclick="switchLog('ap')">AP (SOC)</div>
-            <div class="log-tab" id="logTabCp" onclick="switchLog('cp')">CP (MCU)</div>
+      <!-- SOC (AP) 日志 -->
+      <div class="card" style="padding:14px">
+        <div class="rt-log-header">
+          <div style="display:flex;align-items:center;gap:8px">
+            <span class="rt-log-title soc">🔷 SOC (AP) 实时日志</span>
+            <span class="rt-log-badge soc" id="socLogBadge">0 条</span>
+          </div>
+          <button class="rt-clear-btn" onclick="clearRtLog('soc')">清空</button>
+        </div>
+        <div class="rt-log-panel" id="socLogPanel">
+          <div style="color:var(--text2);font-size:11px;text-align:center;margin-top:60px">
+            等待 SOC 日志...<br><span style="font-size:10px">启动 Demo 后自动显示</span>
           </div>
         </div>
-        <div class="log-panel" id="logPanel"></div>
       </div>
+
+    </div>
+
+    <!-- 普通进程日志（原始输出，可折叠）-->
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">📋 进程原始日志</span>
+        <div class="log-tabs">
+          <div class="log-tab active" id="logTabAp" onclick="switchLog('ap')">AP (SOC)</div>
+          <div class="log-tab" id="logTabCp" onclick="switchLog('cp')">CP (MCU)</div>
+        </div>
+      </div>
+      <div class="log-panel" id="logPanel"></div>
     </div>
 
   </main>
@@ -660,6 +757,7 @@
 // ═══════════════════════════════════════════════════════
 const WS_URL = 'ws://127.0.0.1:8765';
 const MAX_CHART_POINTS = 60;
+const MAX_RT_LOG = 200;  // 每个面板最多保留条数
 
 // ═══════════════════════════════════════════════════════
 // STATE
@@ -670,6 +768,9 @@ let reconnectTimer = null;
 let currentLogTab = 'ap';
 const logLines = { ap: [], cp: [] };
 let subscriptions = {};
+
+// 实时结构化日志缓冲
+const rtLogs = { mcu: [], soc: [] };
 
 // ═══════════════════════════════════════════════════════
 // CHART INIT
@@ -887,6 +988,69 @@ function escHtml(s) {
 }
 
 // ═══════════════════════════════════════════════════════
+// 实时结构化日志面板
+// ═══════════════════════════════════════════════════════
+function appendRtLog(panelKey, entry) {
+  rtLogs[panelKey].push(entry);
+  if (rtLogs[panelKey].length > MAX_RT_LOG) rtLogs[panelKey].shift();
+  renderRtLogEntry(panelKey, entry);
+  // 更新条数徽章
+  const badge = document.getElementById(panelKey + 'LogBadge');
+  if (badge) badge.textContent = rtLogs[panelKey].length + ' 条';
+}
+
+function renderRtLogEntry(panelKey, entry) {
+  const panel = document.getElementById(panelKey + 'LogPanel');
+  if (!panel) return;
+
+  // 第一条日志时清除占位文本
+  if (rtLogs[panelKey].length === 1) panel.innerHTML = '';
+
+  const atBottom = panel.scrollHeight - panel.clientHeight - panel.scrollTop < 40;
+
+  const level   = entry.level  || 'INFO';
+  const module_ = entry.module || (panelKey === 'mcu' ? 'CP' : 'AP');
+  const event_  = entry.event  || '';
+  const data    = entry.data   || {};
+  const ts      = entry.ts_str || '';
+
+  // 格式化 data 字段（排除高噪字段）
+  const skipKeys = new Set(['level','module','event','ctx','msg','process','type','raw','ts_str']);
+  const dataStr = Object.entries(data)
+    .filter(([k]) => !skipKeys.has(k))
+    .map(([k, v]) => {
+      if (typeof v === 'number') {
+        // 浮点数保留1位小数
+        return `${k}=${Number.isInteger(v) ? v : v.toFixed(1)}`;
+      }
+      return `${k}=${v}`;
+    })
+    .join(' ');
+
+  const div = document.createElement('div');
+  div.className = 'rt-log-entry';
+  div.innerHTML =
+    `<span class="rt-ts">${escHtml(ts)}</span>` +
+    `<span class="rt-level rt-level-${escHtml(level)}">${escHtml(level)}</span>` +
+    `<span class="rt-module">${escHtml(module_)}</span>` +
+    (event_ ? `<span class="rt-event">${escHtml(event_)}</span>` : '') +
+    `<span class="rt-data">${escHtml(dataStr)}</span>`;
+
+  panel.appendChild(div);
+  if (atBottom) panel.scrollTop = panel.scrollHeight;
+}
+
+function clearRtLog(panelKey) {
+  rtLogs[panelKey] = [];
+  const panel = document.getElementById(panelKey + 'LogPanel');
+  if (panel) panel.innerHTML =
+    `<div style="color:var(--text2);font-size:11px;text-align:center;margin-top:60px">` +
+    `日志已清空</div>`;
+  const badge = document.getElementById(panelKey + 'LogBadge');
+  if (badge) badge.textContent = '0 条';
+}
+
+// ═══════════════════════════════════════════════════════
 // LAST FRAME AGE
 // ═══════════════════════════════════════════════════════
 let lastFrameTs = null;
@@ -968,8 +1132,36 @@ function handleMessage(msg) {
         if (last) { updateFrame(last); lastFrameTs = last.ts; }
       }
       // 恢复日志
-      if (msg.processes?.ap?.logs) msg.processes.ap.logs.forEach(l => appendLog('ap', l, ''));
-      if (msg.processes?.cp?.logs) msg.processes.cp.logs.forEach(l => appendLog('cp', l, ''));
+      if (msg.processes?.ap?.logs) {
+        msg.processes.ap.logs.forEach(l => {
+          appendLog('ap', l, '');
+          // 尝试解析SOC_LOG
+          if (l.startsWith('[SOC_LOG]')) {
+            try {
+              const d = JSON.parse(l.slice('[SOC_LOG]'.length).trim());
+              appendRtLog('soc', {
+                level: d.level || 'INFO', module: d.ctx || 'AP',
+                event: d.msg || '', data: d, ts_str: ''
+              });
+            } catch(e) {}
+          }
+        });
+      }
+      if (msg.processes?.cp?.logs) {
+        msg.processes.cp.logs.forEach(l => {
+          appendLog('cp', l, '');
+          // 尝试解析MCU_LOG
+          if (l.startsWith('[MCU_LOG]')) {
+            try {
+              const d = JSON.parse(l.slice('[MCU_LOG]'.length).trim());
+              appendRtLog('mcu', {
+                level: d.level || 'INFO', module: d.module || 'CP',
+                event: d.event || '', data: d, ts_str: ''
+              });
+            } catch(e) {}
+          }
+        });
+      }
       break;
 
     case 'frame':
@@ -979,6 +1171,11 @@ function handleMessage(msg) {
 
     case 'log':
       appendLog(msg.process, msg.line, msg.ts_str || '');
+      break;
+
+    case 'proc_log':
+      // 结构化日志 → 推入对应实时日志面板
+      appendRtLog(msg.process === 'cp' ? 'mcu' : 'soc', msg);
       break;
 
     case 'heartbeat':

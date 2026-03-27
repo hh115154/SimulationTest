@@ -169,6 +169,42 @@
   .stat-orange{ color: var(--orange); }
   .stat-red   { color: var(--danger); }
 
+  /* ── HMI Signal Input ── */
+  .hmi-input-section { display: flex; flex-direction: column; gap: 8px; }
+  .hmi-row { display: flex; flex-direction: column; gap: 3px; }
+  .hmi-label-row {
+    display: flex; justify-content: space-between; align-items: center;
+    font-size: 11px; color: var(--text2);
+  }
+  .hmi-val { font-weight: 600; color: var(--cyan); font-size: 12px; min-width: 42px; text-align: right; }
+  input[type=range].hmi-slider {
+    width: 100%; height: 4px; border-radius: 2px; cursor: pointer;
+    accent-color: var(--blue); background: var(--border);
+  }
+  .hmi-toggle-row { display: flex; gap: 6px; }
+  .hmi-toggle {
+    flex: 1; padding: 5px 0; border-radius: 6px; border: 1px solid;
+    cursor: pointer; font-size: 11px; font-family: inherit; font-weight: 600;
+    transition: all 0.15s;
+  }
+  .hmi-toggle.off { background: rgba(139,148,158,0.08); color: var(--text2); border-color: var(--border); }
+  .hmi-toggle.on  { background: rgba(218,54,51,0.25); color: var(--danger); border-color: var(--danger); }
+  .hmi-toggle.door-on { background: rgba(243,199,47,0.2); color: var(--yellow); border-color: var(--yellow); }
+  .hmi-send-btn {
+    width: 100%; padding: 7px; border-radius: 6px; border: 1px solid var(--blue);
+    background: rgba(31,111,235,0.15); color: var(--blue);
+    cursor: pointer; font-size: 12px; font-family: inherit; font-weight: 600;
+    transition: all 0.2s; margin-top: 4px;
+  }
+  .hmi-send-btn:hover { background: rgba(31,111,235,0.3); }
+  .hmi-send-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+  .hmi-source-badge {
+    display: inline-block; padding: 1px 6px; border-radius: 4px;
+    font-size: 10px; font-weight: 600;
+  }
+  .source-ap  { background: rgba(88,166,255,0.15); color: var(--blue); border: 1px solid var(--blue); }
+  .source-cp  { background: rgba(247,129,102,0.15); color: var(--orange); border: 1px solid var(--orange); }
+
   /* ── Subscription toggles ── */
   .sub-list { display: flex; flex-direction: column; gap: 6px; }
   .sub-item {
@@ -372,6 +408,74 @@
       </div>
     </div>
 
+    <!-- HMI 信号输入 -->
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">🎮 HMI 信号输入</span>
+        <span class="hmi-source-badge source-ap" id="dataSourceBadge">采集: AP</span>
+      </div>
+      <div class="hmi-input-section">
+
+        <!-- 车速 -->
+        <div class="hmi-row">
+          <div class="hmi-label-row">
+            <span>🚗 车速 (CAN→MCU→SOC)</span>
+            <span class="hmi-val" id="hv_speed">0 km/h</span>
+          </div>
+          <input type="range" class="hmi-slider" id="hs_speed" min="0" max="200" step="1" value="0"
+                 oninput="document.getElementById('hv_speed').textContent=this.value+' km/h'">
+        </div>
+
+        <!-- 转速 -->
+        <div class="hmi-row">
+          <div class="hmi-label-row">
+            <span>⚙️ 转速 (CAN→MCU→SOC)</span>
+            <span class="hmi-val" id="hv_rpm">0 RPM</span>
+          </div>
+          <input type="range" class="hmi-slider" id="hs_rpm" min="0" max="8000" step="50" value="0"
+                 oninput="document.getElementById('hv_rpm').textContent=this.value+' RPM'">
+        </div>
+
+        <!-- 转角 -->
+        <div class="hmi-row">
+          <div class="hmi-label-row">
+            <span>🔄 转角 (CAN→MCU→SOC)</span>
+            <span class="hmi-val" id="hv_steer">0°</span>
+          </div>
+          <input type="range" class="hmi-slider" id="hs_steer" min="-540" max="540" step="5" value="0"
+                 oninput="document.getElementById('hv_steer').textContent=this.value+'°'">
+        </div>
+
+        <!-- 燃油液位（本地输入，不走 CAN） -->
+        <div class="hmi-row">
+          <div class="hmi-label-row">
+            <span>⛽ 燃油液位 (本地输入)</span>
+            <span class="hmi-val" id="hv_fuel">80%</span>
+          </div>
+          <input type="range" class="hmi-slider" id="hs_fuel" min="0" max="100" step="1" value="80"
+                 oninput="document.getElementById('hv_fuel').textContent=this.value+'%'">
+        </div>
+
+        <!-- 制动 + 车门 -->
+        <div class="hmi-toggle-row">
+          <button class="hmi-toggle off" id="hbt_brake"
+                  onclick="toggleHmiBrake()">🛑 制动: OFF</button>
+          <button class="hmi-toggle off" id="hbt_door"
+                  onclick="toggleHmiDoor()">🚪 车门: 关</button>
+        </div>
+
+        <!-- 发送按钮 -->
+        <button class="hmi-send-btn" id="hmiSendBtn"
+                onclick="sendHmiInput()" disabled>
+          📤 下发信号 → MCU (CP)
+        </button>
+        <div style="font-size:10px;color:var(--text2);text-align:center;margin-top:2px">
+          数据流: HMI → monitor → CP (UDP:30503) → SOME/IP → AP → HMI显示
+        </div>
+
+      </div>
+    </div>
+
     <!-- 订阅控制 -->
     <div class="card">
       <div class="card-header">
@@ -423,6 +527,7 @@
           <div class="comm-node-name" style="color:var(--orange)">MyAutoSarCP</div>
           <div class="comm-node-role">MCU · AUTOSAR CP R25-11</div>
           <div class="comm-node-role">SOME/IP Provider</div>
+          <div class="comm-node-role" style="color:var(--cyan);font-size:10px">HMI Cmd UDP:30503</div>
           <div class="comm-node-pid" id="cpNodePid">PID: —</div>
         </div>
         <div class="comm-arrow">
@@ -437,11 +542,14 @@
           <div style="font-size:10px;color:var(--text2)">UDP 127.0.0.1:30501</div>
           <div style="font-size:10px;color:var(--text2)">Event 0x8001 · 10ms</div>
           <div style="font-size:10px;color:var(--cyan);margin-top:4px" id="lastFrameAge">最后帧: —</div>
+          <!-- HMI 下行指示 -->
+          <div style="font-size:10px;color:var(--purple);margin-top:3px" id="hmiCmdStatus">⬆ HMI→MCU: —</div>
         </div>
         <div class="comm-node" id="apNode">
           <div class="comm-node-name" style="color:var(--blue)">MyAutoSarAp</div>
           <div class="comm-node-role">SOC · AUTOSAR AP R25-11</div>
           <div class="comm-node-role">SOME/IP Consumer</div>
+          <div class="comm-node-role" style="color:var(--green);font-size:10px">📊 数据采集点</div>
           <div class="comm-node-pid" id="apNodePid">PID: —</div>
         </div>
       </div>
@@ -671,7 +779,10 @@ function updateProcessUI(procs) {
 // FRAME UI
 // ═══════════════════════════════════════════════════════
 function updateFrame(event) {
-  const { header, signal, ts_str, stats } = event;
+  const { header, signal, ts_str, stats, source } = event;
+
+  // 更新采集点来源标识
+  if (source) updateDataSourceBadge(source);
 
   // Gauges
   setGauge('speed', signal.vehicle_speed_kmh, 0, 200);
@@ -806,6 +917,7 @@ function connect() {
     document.getElementById('wsDot').className = 'ws-dot connected';
     document.getElementById('wsStatusText').textContent = '已连接 ws://127.0.0.1:8765';
     if (reconnectTimer) { clearTimeout(reconnectTimer); reconnectTimer = null; }
+    updateHmiSendButton(true);
   };
 
   ws.onclose = () => {
@@ -813,6 +925,7 @@ function connect() {
     document.getElementById('wsDot').className = 'ws-dot';
     document.getElementById('wsStatusText').textContent = '未连接 — 重连中...';
     reconnectTimer = setTimeout(connect, 2000);
+    updateHmiSendButton(false);
   };
 
   ws.onerror = () => { ws.close(); };
@@ -892,6 +1005,75 @@ function sendCmd(cmd) {
     ws.send(JSON.stringify(cmd));
   } else {
     console.warn('WS not connected');
+  }
+}
+
+// ═══════════════════════════════════════════════════════
+// HMI INPUT CONTROLS
+// ═══════════════════════════════════════════════════════
+let hmiBrake = 0;
+let hmiDoor  = 0;
+
+function toggleHmiBrake() {
+  hmiBrake = hmiBrake ? 0 : 1;
+  const btn = document.getElementById('hbt_brake');
+  btn.className = 'hmi-toggle ' + (hmiBrake ? 'on' : 'off');
+  btn.textContent = '🛑 制动: ' + (hmiBrake ? 'ON' : 'OFF');
+}
+
+function toggleHmiDoor() {
+  hmiDoor = hmiDoor ? 0 : 0x0F;  // 0x0F = 四门全开
+  const btn = document.getElementById('hbt_door');
+  btn.className = 'hmi-toggle ' + (hmiDoor ? 'door-on' : 'off');
+  btn.textContent = '🚪 车门: ' + (hmiDoor ? '开' : '关');
+}
+
+function sendHmiInput() {
+  const speed   = parseFloat(document.getElementById('hs_speed').value);
+  const rpm     = parseFloat(document.getElementById('hs_rpm').value);
+  const steer   = parseFloat(document.getElementById('hs_steer').value);
+  const fuel    = parseFloat(document.getElementById('hs_fuel').value);
+
+  const cmd = {
+    action:       'hmi_input',
+    speed_kmh:    speed,
+    rpm:          rpm,
+    steering_deg: steer,
+    brake:        hmiBrake,
+    door:         hmiDoor,
+    fuel_pct:     fuel,
+  };
+
+  sendCmd(cmd);
+
+  // 更新 HMI 状态指示
+  const status = document.getElementById('hmiCmdStatus');
+  if (status) {
+    status.textContent = `⬆ HMI→MCU: ${speed}km/h ${rpm}rpm`;
+    status.style.color = 'var(--purple)';
+  }
+  console.log('[HMI] Sent:', cmd);
+}
+
+// WS 连接后启用发送按钮；断开后禁用
+function updateHmiSendButton(connected) {
+  const btn = document.getElementById('hmiSendBtn');
+  if (btn) btn.disabled = !connected;
+}
+
+// 当 frame 有 source 字段时更新采集点标识
+function updateDataSourceBadge(source) {
+  const badge = document.getElementById('dataSourceBadge');
+  if (!badge) return;
+  if (source === 'ap') {
+    badge.className = 'hmi-source-badge source-ap';
+    badge.textContent = '采集: AP (SOC)';
+  } else if (source === 'cp_mirror') {
+    badge.className = 'hmi-source-badge source-cp';
+    badge.textContent = '采集: CP Mirror';
+  } else {
+    badge.className = 'hmi-source-badge source-cp';
+    badge.textContent = '采集: ' + source;
   }
 }
 

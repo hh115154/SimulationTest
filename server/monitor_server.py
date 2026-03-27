@@ -56,6 +56,9 @@ EVT_ID_VEHICLE_SIGNAL = 0x8001
 PAYLOAD_FMT  = "<ffBfBfBB"   # Little-Endian（macOS arm64 / x86_64 宿主机字节序）
 PAYLOAD_SIZE = struct.calcsize(PAYLOAD_FMT)   # 20
 
+# HMI 命令转发端口（monitor_server → CP udp:30503）
+HMI_CMD_PORT = 30503
+
 # ─── 服务端口 ─────────────────────────────────────────────────────────────────
 WS_PORT   = 8765
 HTTP_PORT = 8080
@@ -65,6 +68,9 @@ processes: dict = {"ap": None, "cp": None}   # subprocess.Popen | None
 proc_logs: dict = {"ap": [], "cp": []}        # 最近 200 行日志
 
 ws_clients: set = set()                        # 已连接 WebSocket 客户端
+
+# HMI 命令转发 socket（复用整个生命周期）
+_hmi_cmd_sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 
 stats = {
     "total_frames":    0,
@@ -223,6 +229,7 @@ def udp_sniffer_thread(loop: asyncio.AbstractEventLoop):
 
         event = {
             "type":    "frame",
+            "source":  "cp_mirror",   # 来自 CP 30502 旁路镜像
             "ts":      now,
             "ts_str":  datetime.fromtimestamp(now).strftime("%H:%M:%S.%f")[:-3],
             "header":  hdr,
@@ -305,6 +312,7 @@ def stop_process(key: str) -> str:
 
 
 def _log_reader(key: str, proc: subprocess.Popen, log_file, loop):
+    global _fps_frames, _fps_ts
     for line in proc.stdout:
         line = line.rstrip()
         proc_logs[key].append(line)
@@ -312,6 +320,103 @@ def _log_reader(key: str, proc: subprocess.Popen, log_file, loop):
             proc_logs[key].pop(0)
         log_file.write(line + "\n")
         log_file.flush()
+
+        # ── AP 结构化信号采集点 ──────────────────────────────────────────────
+        # AP 进程每帧输出 "[AP_SIGNAL_JSON] {...}" 日志行
+        # 此处解析并广播为 frame 事件，HMI 显示的信号数据来自 AP 侧采集
+        if key == "ap" and line.startswith("[AP_SIGNAL_JSON]"):
+            try:
+                json_str = line[len("[AP_SIGNAL_JSON]"):].strip()
+                ap_data  = json.loads(json_str)
+
+                now = time.time()
+                stats["total_frames"] += 1
+                stats["last_frame_time"] = now
+
+                if not ap_data.get("e2e_ok", 1):
+                    stats["e2e_errors"] += 1
+
+                sid = ap_data.get("session", -1)
+                if stats["last_session_id"] >= 0:
+                    expected = (stats["last_session_id"] + 1) & 0xFFFF
+                    if sid != expected:
+                        stats["session_gaps"] += 1
+                stats["last_session_id"] = sid
+
+                # FPS 滑动窗口
+                _fps_frames += 1
+                elapsed = now - _fps_ts
+                if elapsed >= 1.0:
+                    fps = round(_fps_frames / elapsed, 1)
+                    _fps_frames = 0
+                    _fps_ts     = now
+                else:
+                    fps = round(stats["total_frames"] / max(1.0, now - stats["start_time"]), 1)
+
+                sig = {
+                    "vehicle_speed_kmh":  round(ap_data.get("speed",  0.0), 2),
+                    "engine_rpm":         round(ap_data.get("rpm",    0.0), 1),
+                    "brake_pedal":        int(ap_data.get("brake",    0)),
+                    "steering_angle_deg": round(ap_data.get("steer",  0.0), 2),
+                    "door_status":        int(ap_data.get("door",     0)),
+                    "fuel_level_pct":     round(ap_data.get("fuel",   0.0), 2),
+                    "e2e_crc":            int(ap_data.get("e2e_crc",  0)),
+                    "e2e_counter":        int(ap_data.get("e2e_cnt",  0)),
+                    "e2e_ok":             bool(ap_data.get("e2e_ok",  1)),
+                }
+                # 过滤订阅字段
+                _sub_key_map = {
+                    "vehicle_speed_kmh":  "vehicle_speed",
+                    "engine_rpm":         "engine_rpm",
+                    "brake_pedal":        "brake_pedal",
+                    "steering_angle_deg": "steering_angle",
+                    "door_status":        "door_status",
+                    "fuel_level_pct":     "fuel_level",
+                }
+                filtered_sig = {}
+                for k, v in sig.items():
+                    sub_key = _sub_key_map.get(k)
+                    if sub_key is None or subscriptions.get(sub_key, True):
+                        filtered_sig[k] = v
+
+                # 合成 SOME/IP 协议信息（来自 AP 侧）
+                hdr_fake = {
+                    "service_id": 0x1001,
+                    "method_id":  0x8001,
+                    "length":     28,
+                    "client_id":  0,
+                    "session_id": sid,
+                    "proto_ver":  1,
+                    "iface_ver":  1,
+                    "msg_type":   2,   # NOTIFICATION
+                    "return_code": 0,
+                }
+
+                event = {
+                    "type":    "frame",
+                    "source":  "ap",        # 采集点标识：来自 AP 侧
+                    "ts":      now,
+                    "ts_str":  datetime.fromtimestamp(now).strftime("%H:%M:%S.%f")[:-3],
+                    "header":  hdr_fake,
+                    "signal":  filtered_sig,
+                    "stats": {
+                        "total_frames":  stats["total_frames"],
+                        "e2e_errors":    stats["e2e_errors"],
+                        "session_gaps":  stats["session_gaps"],
+                        "fps":           fps,
+                    },
+                }
+
+                history.append(event)
+                if len(history) > MAX_HISTORY:
+                    history.pop(0)
+
+                asyncio.run_coroutine_threadsafe(broadcast(json.dumps(event)), loop)
+                continue  # 不把此行当普通日志广播
+            except Exception:
+                pass  # 解析失败时当普通日志处理
+
+        # ── 普通日志广播 ────────────────────────────────────────────────────
         msg = json.dumps({
             "type":    "log",
             "process": key,
@@ -444,6 +549,21 @@ async def handle_command(ws, cmd: dict):
         _fps_ts     = time.time()
         history.clear()
         resp["message"] = "Stats cleared"
+
+    elif action == "hmi_input":
+        # HMI 下行指令：将信号设定值转发给 CP（UDP:30503）
+        # cmd 格式：{"action":"hmi_input","speed_kmh":60,"rpm":2000,
+        #             "steering_deg":15,"brake":0,"door":0,"fuel_pct":75}
+        payload_dict = {k: v for k, v in cmd.items() if k != "action"}
+        payload_str  = json.dumps(payload_dict).encode()
+        try:
+            _hmi_cmd_sock.sendto(payload_str, ("127.0.0.1", HMI_CMD_PORT))
+            resp["message"] = f"HMI input sent to CP: {payload_dict}"
+            resp["forwarded"] = True
+        except Exception as e:
+            resp["ok"]      = False
+            resp["message"] = f"Failed to forward HMI input: {e}"
+            resp["forwarded"] = False
 
     await ws.send(json.dumps(resp))
     resp["processes"] = {
